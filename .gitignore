@@ -1,0 +1,8 @@
+# Node modules for both frontend and backend
+client/node_modules/
+server/node_modules/
+
+# Build output
+client/build/
+server/dist/
+
