@@ -77,7 +77,7 @@ useEffect(() => {
     setError(null);
     try {
       const limit = 10;
-      const response = await fetch(`https://smily-4oon.vercel.app/items/${productData.category}?page=${page}&limit=${limit}`);
+      const response = await fetch(`http://localhost:3002/items/${productData.category}?page=${page}&limit=${limit}`);
       if (!response.ok) throw new Error('Could not fetch related products.');
       
       const data = await response.json();

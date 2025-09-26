@@ -11,7 +11,7 @@ const ReviewAdmin = () => {
     const fetchReviews = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await axios.get('https://smily-la3j.vercel.app/ReviewAdmin');
+            const res = await axios.get('http://localhost:3002/ReviewAdmin');
             setReviews(res.data);
         } catch (err) {
             setError('Failed to load reviews.');
@@ -28,7 +28,7 @@ const ReviewAdmin = () => {
     const handleDeleteReview = async (reviewId) => {
         if (window.confirm('Are you sure you want to delete this review?')) {
             try {
-                await axios.delete(`https://smily-la3j.vercel.app/ReviewAdmin/${reviewId}`);
+                await axios.delete(`http://localhost:3002/ReviewAdmin/${reviewId}`);
                 setReviews(prevReviews => prevReviews.filter(review => review._id !== reviewId));
             } catch (err) {
                 alert('Failed to delete the review.');

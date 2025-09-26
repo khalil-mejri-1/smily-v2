@@ -34,7 +34,7 @@ const Order = () => {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get("https://smily-la3j.vercel.app/orders");
+      const res = await axios.get("http://localhost:3002/orders");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setError("Failed to load orders. Please try again later.");
@@ -52,7 +52,7 @@ const Order = () => {
   const handleDeleteOrder = async (orderId) => {
     if (window.confirm("Are you sure you want to delete this order?")) {
       try {
-        await axios.delete(`https://smily-la3j.vercel.app/orders/${orderId}`);
+        await axios.delete(`http://localhost:3002/orders/${orderId}`);
         fetchOrders(); // إعادة جلب الطلبات
         setSelectedOrder(null); // إغلاق النافذة المنبثقة
       } catch (err) {
@@ -66,7 +66,7 @@ const Order = () => {
     // تحديد الحالة التالية في الدورة: Pending -> Completed -> Pending
     const nextStatus = currentStatus === "Pending" ? "Completed" : "Pending";
     try {
-      await axios.put(`https://smily-la3j.vercel.app/orders/${orderId}/status`, { status: nextStatus });
+      await axios.put(`http://localhost:3002/orders/${orderId}/status`, { status: nextStatus });
       alert(`Order status changed to ${nextStatus}`);
       fetchOrders();
       setSelectedOrder(prev => prev ? { ...prev, status: nextStatus } : null);
@@ -81,7 +81,7 @@ const Order = () => {
     try {
       // الخطوة 1: قم بإجراء الطلب إلى الخادم وانتظر الاستجابة
       // ستقوم الاستجابة الآن بإرجاع الطلب المحدث إذا تمت الموافقة
-      const response = await axios.put(`https://smily-la3j.vercel.app/reviews/${reviewId}`, { approved });
+      const response = await axios.put(`http://localhost:3002/reviews/${reviewId}`, { approved });
       alert("Review status updated!");
 
       // الخطوة 2: تحديث الحالة في الواجهة الأمامية بالبيانات الصحيحة من الخادم
@@ -108,12 +108,17 @@ const Order = () => {
       alert("Failed to update review status.");
     }
   };
-  
+
   // عرض حالة التحميل
   if (loading) return <div className="loading-container"><FiLoader className="loading-spinner" /></div>;
 
   // عرض حالة الخطأ
   if (error) return <div className="error-container"><FiAlertCircle /><h2>An Error Occurred</h2><p>{error}</p></div>;
+  
+  // دالة لحساب العدد الإجمالي للمنتجات
+  const getTotalProductQuantity = (items) => {
+    return items.reduce((total, item) => total + (item.quantity || 0), 0);
+  };
 
   return (
     <>
@@ -139,7 +144,7 @@ const Order = () => {
                   </div>
                   <div className="info-item">
                     <FiBox size={16} /> 
-                    <span>{order.items.length} Products</span>
+                    <span>{getTotalProductQuantity(order.items)} Products</span>
                   </div>
                   <div className="info-item total-price-simple">
                     <FiDollarSign size={16} />
@@ -167,30 +172,30 @@ const Order = () => {
             {/* هنا نضع محتوى البطاقة المفصلة الأصلي */}
             <div className="order-card-detailed">
                <div className="card-header">
-                  <div>
-                    <h2 className="customer-name">{selectedOrder.customerName}</h2>
-                    <p className="customer-phone"><FiPhone size={14} /> {selectedOrder.customerPhone}</p>
-                  </div>
-                  <StatusBadge status={selectedOrder.status} />
-                </div>
+                 <div>
+                   <h2 className="customer-name">{selectedOrder.customerName}</h2>
+                   <p className="customer-phone"><FiPhone size={14} /> {selectedOrder.customerPhone}</p>
+                 </div>
+                 <StatusBadge status={selectedOrder.status} />
+               </div>
 
-                <div className="card-body">
-                   <p className="section-title_order">Products</p>
-                   <div className="products-list">
-                      {selectedOrder.items.map((item) => (
-                        <div key={item._id} className="product-item">
-                           <div className="product-details-wrapper">
+               <div className="card-body">
+                  <p className="section-title_order">Products</p>
+                  <div className="products-list">
+                    {selectedOrder.items.map((item) => (
+                      <div key={item._id} className="product-item">
+                          <div className="product-details-wrapper">
                              {item.image && <img src={item.image} alt={item.title} className="product-item-image"/>}
                              <div className="product-details">
                                 <p className="product-title_order">{item.title}</p>
                                 <p className="product-meta">Size: {item.size} &times; {item.quantity}</p>
                              </div>
-                           </div>
-                           <p className="product-price">{item.price}</p>
+                          </div>
+                          <p className="product-price">{item.price}</p>
                         </div>
-                      ))}
-                   </div>
-                   <div className="total-section">
+                    ))}
+                  </div>
+                  <div className="total-section">
                        <p className="total-label">TOTAL</p>
                        <p className="total-price">{selectedOrder.totalPrice} DT</p>
                    </div>
@@ -201,36 +206,36 @@ const Order = () => {
                      {/* ... نفس قسم المراجعة من الكود الأصلي */}
                      <p className="section-title_order">Customer Review</p>
                      <div className="review-content">
-                       <div className="review-text">
-                         <p className="review-comment">"{selectedOrder.review.comment}"</p>
-                         <p className="review-status">
-                           Status: <span className={selectedOrder.review.approved ? 'review-status-approved' : 'review-status-pending'}>
-                             {selectedOrder.review.approved ? " Approved" : " Pending"}
-                           </span>
-                         </p>
-                       </div>
+                        <div className="review-text">
+                          <p className="review-comment">"{selectedOrder.review.comment}"</p>
+                          <p className="review-status">
+                             Status: <span className={selectedOrder.review.approved ? 'review-status-approved' : 'review-status-pending'}>
+                               {selectedOrder.review.approved ? " Approved" : " Pending"}
+                             </span>
+                          </p>
+                        </div>
                      </div>
                      <div className="review-actions">
-                       <button onClick={() => handleApproval(selectedOrder.review._id, true)} disabled={selectedOrder.review.approved === true} className="btn btn-approve"><FiCheckCircle/> Approve</button>
-                       <button onClick={() => handleApproval(selectedOrder.review._id, false)} disabled={selectedOrder.review.approved === false} className="btn btn-reject"><FiXCircle/> Reject</button>
+                        <button onClick={() => handleApproval(selectedOrder.review._id, true)} disabled={selectedOrder.review.approved === true} className="btn btn-approve"><FiCheckCircle/> Approve</button>
+                        <button onClick={() => handleApproval(selectedOrder.review._id, false)} disabled={selectedOrder.review.approved === false} className="btn btn-reject"><FiXCircle/> Reject</button>
                      </div>
-                  </div>
-                )}
+                   </div>
+                 )}
                 
-                <div className="card-footer modal-footer">
-                    <div className="order-date">
-                        <FiCalendar size={14} /> 
-                        {new Date(selectedOrder.orderDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                    </div>
-                    <div className="modal-actions">
-                        <button className="btn btn-status" onClick={() => handleChangeStatus(selectedOrder._id, selectedOrder.status)}>
-                            <FiEdit/> Change Status
-                        </button>
-                        <button className="btn btn-delete" onClick={() => handleDeleteOrder(selectedOrder._id)}>
-                            <FiTrash2/> Delete Order
-                        </button>
-                    </div>
-                </div>
+                 <div className="card-footer modal-footer">
+                      <div className="order-date">
+                          <FiCalendar size={14} /> 
+                          {new Date(selectedOrder.orderDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </div>
+                      <div className="modal-actions">
+                          <button className="btn btn-status" onClick={() => handleChangeStatus(selectedOrder._id, selectedOrder.status)}>
+                              <FiEdit/> Change Status
+                          </button>
+                          <button className="btn btn-delete" onClick={() => handleDeleteOrder(selectedOrder._id)}>
+                              <FiTrash2/> Delete Order
+                          </button>
+                      </div>
+                 </div>
             </div>
           </div>
         </div>

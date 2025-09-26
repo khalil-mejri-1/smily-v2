@@ -278,6 +278,7 @@ const SearchUI = ({
         <FaSearch className="search-icon" />
         <input
           type="text"
+          className="search-input_client"
           placeholder="Search for stickers or categories..."
           value={query}
           onKeyDown={handleSearchSubmit}

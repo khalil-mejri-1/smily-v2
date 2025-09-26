@@ -1,36 +1,38 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import NavbarAdmin from './navbar_admin';
-import { FiEdit, FiTrash2, FiLoader, FiAlertCircle, FiSearch } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiLoader, FiAlertCircle, FiSearch, FiXCircle } from "react-icons/fi";
+import { categoryData } from '../../choix/choix';
 
 const StickresAdmin = () => {
     const [stickers, setStickers] = useState([]);
-    const [loading, setLoading] = useState(false); // Set initial loading to false
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
 
-    // --- ✨ States for server-side search ---
-    const [searchQuery, setSearchQuery] = useState(''); // For the input field
-    const [debouncedQuery, setDebouncedQuery] = useState(''); // For the API call after a delay
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
     
+    // ✅ New states for category-based deletion and count
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [categoryCount, setCategoryCount] = useState(0);
+
     const observer = useRef();
 
-    // Effect to "debounce" the search input
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedQuery(searchQuery);
-        }, 500); // Wait 500ms after user stops typing
-        return () => clearTimeout(timer); // Cleanup
+        }, 500);
+        return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Effect to reset everything when a new search starts
     useEffect(() => {
-        setStickers([]); // Clear old results
-        setPage(1); // Go back to page 1
-        setHasMore(true); // Reset hasMore
-    }, [debouncedQuery]); // This runs only when the debounced query changes
+        setStickers([]);
+        setPage(1);
+        setHasMore(true);
+    }, [debouncedQuery, selectedCategory]); // ✅ Reset when selectedCategory changes too
 
     const lastStickerElementRef = useCallback(node => {
         if (loading) return;
@@ -43,19 +45,34 @@ const StickresAdmin = () => {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
-    // Main effect to fetch data from the API
+    // ✅ New useEffect to fetch sticker count for the selected category
+    useEffect(() => {
+        const fetchCategoryCount = async () => {
+            if (!selectedCategory) {
+                setCategoryCount(0);
+                return;
+            }
+            try {
+                const response = await axios.get(`http://localhost:3002/stickers/count?category=${selectedCategory}`);
+                setCategoryCount(response.data.count);
+            } catch (err) {
+                console.error("Failed to fetch category count:", err);
+                setCategoryCount(0);
+            }
+        };
+
+        fetchCategoryCount();
+    }, [selectedCategory]);
+
     useEffect(() => {
         const fetchStickers = async () => {
             setLoading(true);
             setError(null);
             try {
-                // --- ✨ Add the debouncedQuery to the API request URL ---
-                const url = `https://smily-la3j.vercel.app/stickers?page=${page}&limit=20&title=${debouncedQuery}`;
+                const url = `http://localhost:3002/stickers?page=${page}&limit=20&title=${debouncedQuery}&category=${selectedCategory}`;
                 const response = await axios.get(url);
 
-                // Append new results to the list
                 setStickers(prev => {
-                    // Combine and filter for unique stickers to prevent duplicates
                     const allStickers = [...prev, ...response.data.items];
                     return allStickers.filter((s, i, self) => i === self.findIndex(t => t._id === s._id));
                 });
@@ -74,24 +91,53 @@ const StickresAdmin = () => {
         };
 
         fetchStickers();
-    // This effect now runs when the page or the search query changes
-    }, [page, debouncedQuery]);
+    }, [page, debouncedQuery, selectedCategory]);
 
-      const handleDelete = async (id) => {
+    const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this sticker?')) return;
         try {
-            await axios.delete(`https://smily-la3j.vercel.app/stickers/${id}`);
+            await axios.delete(`http://localhost:3002/stickers/${id}`);
             setStickers(stickers.filter(sticker => sticker._id !== id));
-            // --- ✨ Decrement total count on successful deletion ---
             setTotalCount(prevCount => prevCount - 1);
+            // ✅ Update category count after deletion
+            setCategoryCount(prevCount => prevCount - 1);
         } catch (err) {
             alert('Failed to delete the sticker.');
+        }
+    };
+
+    // ✅ New function to handle bulk deletion
+    const handleDeleteCategory = async () => {
+        if (!selectedCategory || !window.confirm(`Are you sure you want to delete ALL ${categoryCount} stickers from the category: ${selectedCategory}?`)) {
+            return;
+        }
+        try {
+            const response = await axios.delete(`http://localhost:3002/stickers/category/${selectedCategory}`);
+            alert(response.data.message);
+            // ✅ Reset states after successful deletion
+            setStickers([]);
+            setPage(1);
+            setHasMore(true);
+            setTotalCount(prevCount => prevCount - response.data.deletedCount);
+            setCategoryCount(0);
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to delete stickers by category.';
+            alert(errorMessage);
         }
     };
 
     const handleUpdate = (id) => {
         alert(`Update functionality for sticker ID: ${id} is not implemented yet.`);
     };
+
+    const allCategories = categoryData.reduce((acc, category) => {
+        if (category.name === 'All') return acc;
+        if (category.subCategories && category.subCategories.length > 0) {
+            return acc.concat(category.subCategories);
+        } else {
+            return acc.concat(category.name);
+        }
+    }, []);
 
     return (
         <div>
@@ -105,22 +151,49 @@ const StickresAdmin = () => {
                 </div>
 
                 <div className="admin-search-container">
-                    <FiSearch className="search-icon" />
                     <input 
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search all stickers in database..."
+                        placeholder="Search by title..."
                         className="admin-search-input"
                     />
                 </div>
                 
-                {error && <p>{error}</p>}
-
-                {/* Initial message before any search */}
-                {stickers.length === 0 && !loading && !searchQuery && (
+                {/* ✅ New UI for category deletion */}
+                <div className="admin-category-actions">
+                    <div className="category-select-group">
+                        <label htmlFor="category-select">Select Category to Delete:</label>
+                        <select 
+                            id="category-select"
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                        >
+                            <option value="">-- Select a category --</option>
+                            {allCategories.map((cat, index) => (
+                                <option key={index} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                        {selectedCategory && (
+                             <span className="category-count">
+                                {categoryCount} stickers
+                             </span>
+                        )}
+                    </div>
+                    <button 
+                        className="btn-delete-all"
+                        onClick={handleDeleteCategory}
+                        disabled={!selectedCategory || categoryCount === 0}
+                    >
+                        <FiTrash2 /> Delete All
+                    </button>
+                </div>
+                
+                {error && <p className="error-message">{error}</p>}
+                
+                {stickers.length === 0 && !loading && !searchQuery && !selectedCategory && (
                     <div className="loading-more-container">
-                        <p>Type in the search bar to find stickers.</p>
+                        <p>Type in the search bar or select a category to view stickers.</p>
                     </div>
                 )}
                 
@@ -133,16 +206,15 @@ const StickresAdmin = () => {
                                 ref={isLastElement ? lastStickerElementRef : null} 
                                 key={sticker._id}
                             >
-                                {/* Card content... */}
                                 <img src={sticker.image} alt={sticker.title} className="sticker-image-admin" />
-                                 <div className="card-content">
-                                     <h3 className="sticker-title-admin">{sticker.title}</h3>
-                                     <p className="sticker-category-admin">{sticker.category}</p>
-                                 </div>
-                                 <div className="card-actions">
-                                     <button className="btn-update" onClick={() => handleUpdate(sticker._id)}><FiEdit /> Update</button>
-                                     <button className="btn-delete" onClick={() => handleDelete(sticker._id)}><FiTrash2 /> Delete</button>
-                                 </div>
+                                <div className="card-content">
+                                    <h3 className="sticker-title-admin">{sticker.title}</h3>
+                                    <p className="sticker-category-admin">{sticker.category}</p>
+                                </div>
+                                <div className="card-actions">
+                                    <button className="btn-update" onClick={() => handleUpdate(sticker._id)}><FiEdit /> Update</button>
+                                    <button className="btn-delete" onClick={() => handleDelete(sticker._id)}><FiTrash2 /> Delete</button>
+                                </div>
                             </div>
                         );
                     })}
@@ -150,8 +222,10 @@ const StickresAdmin = () => {
                 
                 {loading && <div className="loading-more-container"><FiLoader className="spinner-icon" /><p>Loading...</p></div>}
                 
-                {!loading && stickers.length === 0 && debouncedQuery && (
-                     <div className="loading-more-container"><p>No results found for "{debouncedQuery}".</p></div>
+                {!loading && stickers.length === 0 && (searchQuery || selectedCategory) && (
+                    <div className="loading-more-container">
+                         <p>No results found.</p>
+                    </div>
                 )}
             </div>
         </div>

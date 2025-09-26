@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- استيراد الفيديوهات والصور ---
-// import myVideo1 from './../public/vd1.mp4';
-// import myVideo2 from './../public/vd2.mp4';
-// // يمكنك إضافة المزيد من الفيديوهات هنا
-// import myVideo3 from './../public/vd3.mp4'; 
-
 
 import myVideo1 from './../public/vd/vd1.webm';
 import myVideo2 from './../public/vd/vd2.webm';
@@ -101,3 +95,5 @@ const VideoPlayer = () => {
 };
 
 export default VideoPlayer;
+
+

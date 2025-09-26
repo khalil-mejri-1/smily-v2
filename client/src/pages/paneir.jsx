@@ -112,7 +112,7 @@ const CartPage = () => {
     if (reviewId) orderData.review = reviewId;
 
     try {
-      const response = await fetch("https://smily-la3j.vercel.app/orders", {
+      const response = await fetch("http://localhost:3002/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
@@ -151,7 +151,7 @@ const CartPage = () => {
       formData.append("comment", reviewComment);
       if (reviewImage) formData.append("image", reviewImage);
 
-      const response = await fetch("https://smily-la3j.vercel.app/reviews", {
+      const response = await fetch("http://localhost:3002/reviews", {
         method: "POST",
         body: formData,
       });
