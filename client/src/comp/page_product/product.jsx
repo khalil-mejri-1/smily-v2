@@ -1,12 +1,10 @@
-// src/pages/product/NewProductGrid.jsx
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaShoppingCart, FaCheckCircle } from 'react-icons/fa';
 import SkeletonCard from '../../comp/SkeletonCard.jsx';
 
-// --- مكون ProductCard يبقى كما هو بدون تغيير ---
+// --- The ProductCard component remains unchanged ---
 const ProductCard = ({ product, isLast, lastStickerElementRef }) => {
     const [cartItemIds, setCartItemIds] = useState(new Set());
     const [justAddedId, setJustAddedId] = useState(null);
@@ -103,42 +101,42 @@ const ProductCard = ({ product, isLast, lastStickerElementRef }) => {
 };
 
 
-// --- المكون الرئيسي مع التعديلات الجديدة ---
+// --- The main component with the new changes ---
 const NewProductGrid = () => {
     const [searchParams] = useSearchParams();
     
-    // ✨ 1. قراءة جميع الـ parameters الممكنة من الرابط
     const category = searchParams.get('category');
-    const subcats = searchParams.get('subcats'); // لقائمة الفئات
-    const mainCategory = searchParams.get('mainCategory'); // لعنوان الصفحة
+    const subcats = searchParams.get('subcats');
+    const mainCategory = searchParams.get('mainCategory');
     const searchQuery = searchParams.get('recherche');
 
     const [stickers, setStickers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true); // Changed initial state
     const [totalStickers, setTotalStickers] = useState(0);
 
     const observer = useRef();
     const lastStickerElementRef = useCallback(node => {
-        if (loading) return;
+        // Only proceed if loading is not in progress and there are more items to load
+        if (loading || !hasMore) return; 
         if (observer.current) observer.current.disconnect();
         observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMore) {
+            // Check if the last element is intersecting
+            if (entries[0].isIntersecting) {
                 setPage(prevPage => prevPage + 1);
             }
         });
         if (node) observer.current.observe(node);
-    }, [loading, hasMore]);
+    }, [loading, hasMore]); // Dependencies are loading and hasMore
 
-    // ✨ 2. إعادة تعيين الحالة عند تغيير أي من الـ parameters الأساسية
     useEffect(() => {
         setStickers([]);
         setPage(1);
+        setHasMore(true); // Reset hasMore when parameters change
     }, [category, subcats, searchQuery]);
 
-    // جلب المنتجات من الـ API
     useEffect(() => {
         const fetchItems = async () => {
             setLoading(true);
@@ -146,31 +144,33 @@ const NewProductGrid = () => {
             const limit = 10;
             let url = '';
 
-            // ✨ 3. تحديث منطق بناء رابط الـ API
             if (searchQuery) {
-                // منطق البحث (بدون تغيير)
-                url = `https://smily-la3j.vercel.app/search/products?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}`;
+                url = `http://localhost:3002/search/products?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}`;
             } else if (subcats) {
-                // منطق جديد: إذا وجد 'subcats'، قم ببناء الرابط باستخدامه
-                // نستخدم "all" كـ placeholder في المسار لأن الـ query string هو المهم
-                url = `https://smily-la3j.vercel.app/items/all?subcats=${encodeURIComponent(subcats)}&page=${page}&limit=${limit}`;
+                url = `http://localhost:3002/items/all?subcats=${encodeURIComponent(subcats)}&page=${page}&limit=${limit}`;
             } else {
-                // العودة للمنطق الأصلي الخاص بالفئة الواحدة
                 const currentCategory = category || 'All';
-                url = `https://smily-la3j.vercel.app/items/${currentCategory}?page=${page}&limit=${limit}`;
+                url = `http://localhost:3002/items/${currentCategory}?page=${page}&limit=${limit}`;
             }
 
             try {
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
                 
                 setTotalStickers(data.total);
                 setStickers(prevStickers => {
-                    const existingIds = new Set(prevStickers.map(s => s._id));
-                    const newItems = data.items.filter(item => !existingIds.has(item._id));
+                    const newItems = data.items.filter(
+                        item => !prevStickers.some(s => s._id === item._id)
+                    );
                     return [...prevStickers, ...newItems];
                 });
-                setHasMore((page * limit) < data.total);
+                
+                // Set hasMore to false if the number of items received is less than the limit
+                setHasMore(data.items.length === limit);
+
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -178,10 +178,13 @@ const NewProductGrid = () => {
             }
         };
         
-        fetchItems();
-    }, [category, subcats, searchQuery, page]); // ✨ 4. إضافة subcats إلى مصفوفة الـ dependencies
+        // Fetch items only if hasMore is true, or if it's the first page
+        if (hasMore || page === 1) {
+            fetchItems();
+        }
+        
+    }, [category, subcats, searchQuery, page, hasMore]);
 
-    // ✨ 5. تحديث دالة تحديد العنوان
     const getTitle = () => {
         if (searchQuery) {
             return `Search Results for: "${searchQuery}"`;
@@ -202,13 +205,12 @@ const NewProductGrid = () => {
             {error && <p style={{ color: 'red' }}>Error: {error}</p>}
 
             <div className="showcase-grid">
-                {/* عرض كروت الانتظار عند التحميل الأول */}
                 {loading && page === 1 ? (
                     Array.from({ length: 8 }).map((_, index) => <SkeletonCard key={index} />)
                 ) : (
                     stickers.map((product, index) => (
                         <ProductCard
-                            key={`${product._id}-${index}`} // مفتاح فريد لتجنب المشاكل
+                            key={product._id}
                             product={product}
                             isLast={stickers.length === index + 1}
                             lastStickerElementRef={lastStickerElementRef}
@@ -217,7 +219,6 @@ const NewProductGrid = () => {
                 )}
             </div>
 
-            {/* عرض رسائل التحميل أو نهاية النتائج */}
             <div style={{ textAlign: 'center', marginTop: '2rem', height: '50px' }}>
                 {loading && page > 1 && <p>Loading more...</p>}
                 {!hasMore && stickers.length > 0 && <p>You've seen all the results!</p>}

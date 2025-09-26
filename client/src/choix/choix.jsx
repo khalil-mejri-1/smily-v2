@@ -22,6 +22,7 @@ export const categoryData = [
     name: "Anime & Cartoons",
     icon: anime,
     subCategories: [
+      "Solo leveling",
       "Naruto",
       "Dragon Ball",
       "One Piece",

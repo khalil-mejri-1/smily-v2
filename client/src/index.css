@@ -481,10 +481,6 @@ width: 100%;
   margin: auto;
 }
 
-.search-icon {
-  color: #805ad5;
-  margin: 0 10px;
-}
 
 .search-bar input {
   border: none;
@@ -4021,10 +4017,12 @@ body,
   z-index: 1000;
 }
 
+
 .modal-content {
- background-color: rgba(28, 22, 46, 0.76);
+  background-color: rgba(28, 22, 46, 0.76);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);  padding: 30px;
+  -webkit-backdrop-filter: blur(12px);
+  padding: 30px;
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
@@ -4035,6 +4033,10 @@ body,
   /* --- Added lines for the blur effect --- */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px); /* For Safari browser support */
+
+  /* --- NEW Lines to fix the scrollbar issue --- */
+  max-height: 80vh; /* Set a maximum height for the modal */
+  overflow-y: auto; /* Enable vertical scrolling */
 }
 
 @keyframes slide-down {
@@ -4249,10 +4251,7 @@ body,
   margin-bottom: 20px;
 }
 
-/* Make sure the main title doesn't have extra margin pushing the badge away */
-.admin-title {
-  margin-bottom: 0;
-}
+
 
 /* Style for the count badge */
 .sticker-count-badge {
@@ -5074,10 +5073,6 @@ body,
     object-fit: cover;
 }
 
-.card-content {
-    padding: 1rem;
-    flex-grow: 1; /* Allows content to fill available space */
-}
 
 .sticker-title-admin {
     font-size: 1.1rem;
@@ -5299,14 +5294,27 @@ body,
     max-width: 500px;
 }
 
-.admin-search-container .search-icon {
+.admin-search-container {
     position: absolute;
     top: 50%;
     left: 15px;
+    margin-left: 50px;
     transform: translateY(-50%);
     color: #888;
 }
 
+.search-icon {
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+    position: relative;
+    margin-right: 15px;
+    transform: translateY(-50%);
+    color: #301496cb;
+}
+.search-input_client{
+  font-weight: 700;
+}
 .admin-search-input {
     width: 100%;
     padding: 12px 12px 12px 45px; /* Add padding for the icon */
@@ -5781,4 +5789,933 @@ body,
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* --- Admin Page: General Styles --- */
+.admin-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+
+.sticker-count-badge {
+    background-color: #6a1b9a; /* Deep purple for a premium look */
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Search Bar --- */
+.admin-search-container {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.admin-search-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem; /* Left padding for the icon */
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 50px;
+    background-color: #f9f9f9;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-search-input:focus {
+    outline: none;
+    border-color: #6a1b9a;
+    box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.2);
+    background-color: #fff;
+}
+
+/* --- Category Actions Section --- */
+.admin-category-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #f1f3f6;
+    border-radius: 12px;
+}
+
+.category-select-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-grow: 1;
+}
+
+.category-select-group label {
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
+
+.category-select-group select {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background-color: #fff;
+    flex-grow: 1;
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.category-select-group select:focus {
+    outline: none;
+    border-color: #6a1b9a;
+}
+
+.category-count {
+    background-color: #6a1b9a;
+    color: #fff;
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.btn-delete-all {
+    background-color: #e53935; /* Red for deletion */
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-delete-all:hover {
+    background-color: #c62828;
+    transform: translateY(-2px);
+}
+
+.btn-delete-all:disabled {
+    background-color: #b0b0b0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* --- Grid and Cards (existing, but review for consistency) --- */
+.stickers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.sticker-card-admin {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.sticker-card-admin:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.sticker-image-admin {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-content {
+    padding: 1rem;
+    flex-grow: 1;
+    background-color: #0d1117;
+}
+
+.sticker-title-admin {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.sticker-category-admin {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.card-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: #0d1117;
+}
+
+.btn-update, .btn-delete {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.3s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-update {
+    background-color: #4caf50; /* Green for update */
+    color: #fff;
+}
+
+.btn-update:hover {
+    background-color: #388e3c;
+    transform: scale(1.05);
+}
+
+.btn-delete {
+    background-color: #e53935; /* Red for delete */
+    color: #fff;
+}
+
+.btn-delete:hover {
+    background-color: #d32f2f;
+    transform: scale(1.05);
+}
+
+/* --- Loading and Empty State --- */
+.loading-more-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.spinner-icon {
+    font-size: 2rem;
+    color: #6a1b9a;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-more-container p {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    color: #555;
+}
+
+.error-message {
+    text-align: center;
+    color: #e53935;
+    font-weight: 600;
+    padding: 1rem;
+    background-color: #ffebee;
+    border-radius: 8px;
+    border: 1px solid #e53935;
+}
+
+/* --- Responsive adjustments --- */
+@media (max-width: 768px) {
+    .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .admin-category-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .category-select-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* General container styles */
+.url-input-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+}
+
+/* Input field styles */
+.url-input-container input[type="text"] {
+  width: calc(100% - 20px);
+  padding: 12px 10px;
+  margin-bottom: 20px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.url-input-container input[type="text"]:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  outline: none;
+}
+
+/* Result link text styles */
+.link-display {
+  font-size: 14px;
+  color: #555;
+  word-wrap: break-word;
+  padding: 10px;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  margin-top: 15px;
+  text-align: left;
+}
+
+/* Button group styles */
+.action-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Specific button styles */
+.action-buttons button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.action-buttons button:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.action-buttons button:active {
+  background-color: #004494;
+  transform: translateY(0);
+}
+
+/* Message paragraph styles */
+.status-message {
+  color: #28a745;
+  font-weight: bold;
+  margin-top: 15px;
+  height: 20px;
+  font-size: 14px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* General Body Style for Dark Theme */
+body {
+    background-color: #111827; /* Dark blue-gray background */
+    color: #d1d5db; /* Light gray text for readability */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Main container for the Add page */
+.admin-add-page {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 2rem auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+/* General card styling */
+.card {
+  background-color: #1f2937; /* Lighter dark blue-gray */
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid #374151; /* Subtle border */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f9fafb; /* Off-white */
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 0.75rem;
+}
+
+.card-subtitle {
+    color: #9ca3af; /* Lighter gray for subtitles */
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+}
+
+/* Form elements styling */
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #d1d5db; /* Light gray */
+  margin-bottom: 0.5rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #374151; /* Darker input background */
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #f9fafb; /* White text in inputs */
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 150px;
+}
+
+/* For side-by-side inputs */
+.input-group {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.input-group .form-group {
+    flex: 1;
+}
+
+/* Primary Button Styling */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #3b82f6; /* Lighter blue on hover */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Feedback messages */
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.feedback.success { background-color: #064e3b; color: #a7f3d0; }
+.feedback.error { background-color: #991b1b; color: #fecaca; }
+.feedback.warning { background-color: #92400e; color: #fde68a; }
+.feedback.info { background-color: #1e40af; color: #bfdbfe; }
+
+
+/* Progress Bar */
+.progress-bar-container {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.progress-bar-container p {
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #374151; /* Dark track */
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #2563eb;
+  border-radius: 5px;
+  transition: width 0.4s ease-in-out;
+}
+
+/* Spinner Icon Animation */
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.dark-theme-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.card {
+  background-color: #1e1e1e;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 500px;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #bb86fc;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #a0a0a0;
+  font-weight: bold;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  box-sizing: border-box;
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #bb86fc;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: #03dac6;
+  color: #121212;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #018786;
+  transform: translateY(-2px);
+}
+
+.submit-button:disabled {
+  background-color: #444;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #cf6679;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: bold;
+}
+
+.results-container {
+  margin-top: 30px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  padding: 15px;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.results-header h3 {
+  margin: 0;
+  color: #bb86fc;
+}
+
+.copy-button {
+  background: none;
+  border: none;
+  color: #03dac6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.copy-button:hover {
+  color: #bb86fc;
+}
+
+.results-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: #121212;
+  border: 1px solid #333;
+  padding: 15px;
+  border-radius: 6px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* General Body and Container Styling */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #121212; /* A very dark grey/black background */
+  color: #e0e0e0; /* Light grey text for readability */
+}
+
+.main-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #1e1e1e; /* Slightly lighter dark card background */
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); /* A subtle shadow for depth */
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #bb86fc; /* A vibrant purple for the main heading */
+}
+
+/* Textarea and Input Styling */
+.html-input {
+  width: 100%;
+  height: 250px;
+  padding: 15px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background-color: #2a2a2a; /* Darker background for the input field */
+  color: #e0e0e0;
+  font-size: 14px;
+  box-sizing: border-box;
+  resize: vertical; /* Allow resizing the textarea vertically */
+  transition: border-color 0.3s;
+}
+
+.html-input:focus {
+  outline: none;
+  border-color: #03dac6; /* A bright cyan on focus */
+}
+
+/* Button Styling */
+.action-button {
+  width: 100%;
+  padding: 14px;
+  background-color: #03dac6; /* Cyan button color */
+  color: #121212; /* Dark text on the button */
+  border: none;
+  border-radius: 8px;
+  margin-top: 15px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.action-button:hover {
+  background-color: #018786; /* Darker cyan on hover */
+  transform: translateY(-2px); /* A slight lift effect */
+}
+
+.copy-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 8px 12px;
+  background-color: #28a745; /* Green color for the copy button */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.copy-button:hover {
+  background-color: #218838;
+}
+
+.copy-button:disabled {
+  background-color: #444;
+  cursor: not-allowed;
+}
+
+.copy-feedback {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  font-size: 12px;
+  color: #4caf50; /* A pleasant green for success messages */
+}
+
+/* Results Section Styling */
+.results-container {
+  position: relative;
+}
+
+.results-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.result-item {
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #2a2a2a;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.result-item:hover {
+  background-color: #3a3a3a;
+  border-color: #03dac6;
+}
+
+.result-item strong {
+  color: #bb86fc;
+}
+
+.result-item a {
+  color: #03dac6;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.result-item a:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 20px;
 }

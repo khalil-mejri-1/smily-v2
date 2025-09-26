@@ -38,15 +38,7 @@ const NavbarAdmin = () => {
                         <span>Add stickres</span>
                     </NavLink>
                 </li>
-                  <li>
-                    <NavLink 
-                        to="***REDACTED***/clain links" 
-                        className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
-                    >
-                        <FiClipboard />
-                        <span>Clain links</span>
-                    </NavLink>
-                </li>
+                
 
                  <li>
                     <NavLink 

@@ -51,7 +51,6 @@ const App = () => {
           <Route path="***REDACTED***" element={<Order/>} />
           <Route path="***REDACTED***/Generate Stickers" element={<StickresAdmin />} />
           <Route path="***REDACTED***/add Stickers"  element={<Add />} />
-          <Route path="***REDACTED***/clain links"  element={<ClienLinks />} />
           <Route path="***REDACTED***/Review"  element={<ReviewAdmin />} />
 
           <Route path="/*" element={<Home />} />

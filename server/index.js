@@ -7,6 +7,8 @@ const multer = require('multer');
 const PORT = 3002;
 const stickres = require("./models/stickres"); // تأكد من أن الاسم صحيح هنا
 const pack = require("./models/pack"); // تأكد من أن الاسم صحيح هنا
+const puppeteer = require('puppeteer');
+const { spawn } = require("child_process");
 
 app.use(express.json()); // Middleware to parse JSON requests
 
@@ -49,44 +51,55 @@ connectDB();
 
 
 
-// في ملف index.js
 
-app.get("/search/suggestions", async (req, res) => {
-  const { q } = req.query;
 
-  if (!q || q.trim() === "") {
-    return res.json({ categories: [], products: [] });
-  }
 
-  try {
-    const queryRegex = new RegExp(q, 'i'); // ✨ تعديل: البحث عن أي جزء من الكلمة وليس فقط البداية
 
-    // 1. ابحث عن المنتجات التي يطابق عنوانها أو فئتها النص المكتوب
-    const matchedProducts = await stickres.find({
-      $or: [
-        { title: queryRegex },
-        { category: queryRegex }
-      ]
-    }).limit(100); // زيادة الحد لجلب مجموعة أكبر لتحليلها
+app.post("/run-python-script", (req, res) => {
+    const { searchQuery, startPage, endPage } = req.body;
 
-    // 2. استخلص الفئات الفريدة من المنتجات التي تم العثور عليها
-    // استخدام Set يضمن عدم تكرار الفئات
-    const uniqueCategories = [...new Set(matchedProducts.map(product => product.category))];
+    if (!searchQuery || !startPage || !endPage) {
+        return res.status(400).json({ error: "الرجاء إرسال جميع المعطيات المطلوبة." });
+    }
 
-    // 3. أرسل استجابة منظمة تحتوي على الفئات والمنتجات
-    res.json({
-      categories: uniqueCategories.slice(0, 5), // أرسل 3 فئات كحد أقصى
-      products: matchedProducts.slice(0, 10)   // أرسل 5 منتجات كحد أقصى
+    console.log(`بدء تشغيل سكريبت Python مع المعطيات: ${searchQuery}, ${startPage}, ${endPage}`);
+
+    // تشغيل سكريبت بايثون كعملية فرعية
+    // تأكد من أن 'python3' هو الأمر الصحيح لتشغيل بايثون على جهازك
+    const pythonProcess = spawn('python', [
+        'fetch.py', // اسم ملف سكريبت بايثون
+        searchQuery,
+        startPage,
+        endPage
+    ]);
+
+    let scriptOutput = "";
+    let scriptError = "";
+
+    // استقبال المخرجات العادية من سكريبت بايثون
+    pythonProcess.stdout.on('data', (data) => {
+        console.log(`مخرجات بايثون: ${data.toString()}`);
+        scriptOutput += data.toString();
     });
 
-  } catch (error) {
-    console.error("Error fetching smart search suggestions:", error);
-    res.status(500).json({ message: "Server error during search" });
-  }
+    // استقبال مخرجات الخطأ من سكريبت بايثون
+    pythonProcess.stderr.on('data', (data) => {
+        console.error(`خطأ من بايثون: ${data.toString()}`);
+        scriptError += data.toString();
+    });
+
+    // عند انتهاء عملية بايثون
+    pythonProcess.on('close', (code) => {
+        if (code === 0) {
+            console.log("انتهت عملية بايثون بنجاح.");
+            // إرسال البيانات النهائية إلى الواجهة الأمامية
+            res.json({ message: "تمت العملية بنجاح.", output: scriptOutput });
+        } else {
+            console.error(`انتهت عملية بايثون بخطأ (رمز الخروج: ${code})`);
+            res.status(500).json({ error: "حدث خطأ أثناء تشغيل سكريبت بايثون.", details: scriptError });
+        }
+    });
 });
-
-
-
 
 
 
@@ -202,10 +215,10 @@ app.get("/stickers", async (req, res) => {
         const totalItems = await stickres.countDocuments(filter);
 
         // وسيتم البحث عن المنتجات باستخدام نفس الفلتر
-        const items = await stickres.find(filter)
-            .sort({ _id: -1 })
-            .skip(skip)
-            .limit(limit);
+        items = await stickres.find(query)
+      .sort({ _id: -1 }) // هذا الجزء يقوم بفرز جميع المنتجات من الأحدث إلى الأقدم
+      .skip((page - 1) * limit)
+      .limit(limit);
 
         // --- 5. إرسال الاستجابة ---
         // لقد قمت بتغيير اسم 'total' إلى 'totalItems' ليتوافق مع كود الرياكت الذي أرسلته سابقًا
@@ -223,8 +236,52 @@ app.get("/stickers", async (req, res) => {
 });
 
 
+// ✅ New endpoint to delete all stickers in a specific category
+app.delete("/stickers/category/:category", async (req, res) => {
+    const categoryToDelete = req.params.category;
+
+    if (!categoryToDelete) {
+        return res.status(400).json({ message: "Category name is required." });
+    }
+
+    try {
+        const result = await stickres.deleteMany({ category: categoryToDelete });
+
+        if (result.deletedCount > 0) {
+            res.status(200).json({
+                message: `Successfully deleted ${result.deletedCount} stickers from the category: ${categoryToDelete}.`
+            });
+        } else {
+            res.status(404).json({
+                message: `No stickers found for the category: ${categoryToDelete}.`
+            });
+        }
+    } catch (error) {
+        console.error("Error deleting stickers by category:", error);
+        res.status(500).json({
+            message: "Failed to delete stickers.",
+            error: error.message
+        });
+    }
+});
 
 
+// ✅ New endpoint to get the count of stickers in a specific category
+app.get("/stickers/count", async (req, res) => {
+    const { category } = req.query;
+
+    if (!category) {
+        return res.status(400).json({ message: "Category name is required." });
+    }
+
+    try {
+        const count = await stickres.countDocuments({ category: category });
+        res.status(200).json({ count: count });
+    } catch (error) {
+        console.error("Error fetching category count:", error);
+        res.status(500).json({ message: "Failed to fetch count.", error: error.message });
+    }
+});
 // server/index.js (أو اسم ملف الخادم لديك)
 
 // ... (imports and other app setup)
@@ -291,7 +348,6 @@ app.delete("/stickers/:id", async (req, res) => {
 
 
 
-
 app.get("/items/:category", async (req, res) => {
   const { category } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -306,29 +362,15 @@ app.get("/items/:category", async (req, res) => {
     if (subcats) {
       const subcategoriesArray = subcats.split(',');
       query = { category: { $in: subcategoriesArray } };
-      
-      totalItems = await stickres.countDocuments(query);
-      items = await stickres.find(query)
-        .sort({ _id: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit);
-
-    } else if (category.toLowerCase() === 'all') {
-      totalItems = await stickres.countDocuments({});
-      // Using aggregate with $sample is fine, but for pagination, a regular find is more consistent.
-      // However, if you want random items, this is correct.
-      items = await stickres.aggregate([
-        { $sample: { size: limit } }
-      ]);
-
-    } else {
+    } else if (category.toLowerCase() !== 'all') {
       query = { category: category };
-      totalItems = await stickres.countDocuments(query);
-      items = await stickres.find(query)
-        .sort({ _id: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit);
     }
+
+    totalItems = await stickres.countDocuments(query);
+    items = await stickres.find(query)
+      .sort({ _id: -1 }) // هذا الجزء يقوم بفرز جميع المنتجات من الأحدث إلى الأقدم
+      .skip((page - 1) * limit)
+      .limit(limit);
 
     // --- ✅ THE FIX ---
     // Ensure the JSON response has a key named 'total'
@@ -340,6 +382,8 @@ app.get("/items/:category", async (req, res) => {
     res.status(500).json({ message: "Error fetching items" });
   }
 });
+
+
 
 
 app.get("/pack_items/:id", async (req, res) => {
@@ -567,18 +611,27 @@ app.put("/reviews/:id", async (req, res) => {
 
 // ✅ مسار جديد لإضافة مجموعة من الملصقات دفعة واحدة (Bulk Add)
 app.post("/stickers/bulk", async (req, res) => {
-    // 1. استقبل مصفوفة المنتجات من جسم الطلب
     const { products } = req.body;
 
-    // 2. تحقق من أن البيانات موجودة وهي عبارة عن مصفوفة
     if (!products || !Array.isArray(products) || products.length === 0) {
         return res.status(400).json({ message: "Invalid or empty product data provided." });
     }
 
     try {
-        // 3. استخدم insertMany لإضافة جميع المنتجات إلى قاعدة البيانات بكفاءة
-        await stickres.insertMany(products);
+        // 1. Find the current highest orderIndex in the collection
+        const lastSticker = await stickres.findOne().sort({ orderIndex: -1 });
+        const startOrderIndex = lastSticker ? lastSticker.orderIndex + 1 : 0;
+
+        // 2. Add the orderIndex to each product in the array
+        const productsWithIndex = products.map((product, index) => ({
+            ...product,
+            orderIndex: startOrderIndex + index
+        }));
+
+        // 3. Perform the bulk insert
+        await stickres.insertMany(productsWithIndex);
         res.status(201).json({ message: `Successfully added ${products.length} stickers!` });
+
     } catch (error) {
         console.error("Error bulk inserting stickers:", error);
         res.status(500).json({ message: "Failed to add stickers to the database.", error: error.message });
