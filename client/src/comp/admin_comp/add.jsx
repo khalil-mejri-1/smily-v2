@@ -9,15 +9,14 @@ import {
   FiAlertTriangle,
 } from "react-icons/fi";
 import ClienLinks from "./clien_links";
-import Url from "./url";
+// import ClienLinks from "./clien_links"; // ClienLinks is imported in its own file
+// import Url from "./url"; // Assuming Url is another component
 
 const Add = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
-
- 
 
   // ✅ استرجاع الفئة من localStorage عند تحميل الصفحة
   useEffect(() => {
@@ -36,17 +35,12 @@ const Add = () => {
   const allCategories = categoryData.reduce((acc, category) => {
     if (category.name === "All") return acc;
     if (category.subCategories && category.subCategories.length > 0) {
-      return acc.concat(category.subCategories);
+      // التأكد من استخلاص اسم الفئة الفرعية بشكل صحيح
+      return acc.concat(category.subCategories.map(sub => sub.name || sub));
     } else {
       return acc.concat(category.name);
     }
   }, []);
-
-
-
-  // ✅ دالة تجلب صفحة معينة وتنتظر 20 ثانية قبل الصفحة التالية
-  // ✅ دالة تجلب صفحتين فقط وبدون انتظار
-
 
   // ✅ معالجة الإضافة (من bulkText)
   const handleSubmit = async (event) => {
@@ -63,22 +57,50 @@ const Add = () => {
 
     setIsSubmitting(true);
 
-    const lines = bulkText
-      .trim()
-      .split("\n")
-      .filter((line) => line.trim() !== "");
+    const lines = bulkText.trim().split("\n").filter((line) => line.trim() !== "");
     const products = [];
     let tempProduct = {};
 
+    // منطق أكثر مرونة لاستخلاص المنتجات
     for (const line of lines) {
       const trimmedLine = line.trim();
 
-      if (trimmedLine.startsWith("Title:")) {
+      // 1. معالجة تنسيق (Title: / Image:)
+      if (trimmedLine.toLowerCase().startsWith("title:")) {
+        // إذا كان هناك منتج لم يكتمل، قم بإلغائه وبدء منتج جديد
+        if (tempProduct.title && !tempProduct.image) tempProduct = {};
         tempProduct.title = trimmedLine.substring("Title:".length).trim();
-      } else if (trimmedLine.startsWith("Image:")) {
+      } else if (trimmedLine.toLowerCase().startsWith("image:")) {
         tempProduct.image = trimmedLine.substring("Image:".length).trim();
       }
+      // 2. معالجة تنسيق سطر واحد (Title URL) أو (Title \n URL)
+      else {
+        const parts = trimmedLine.split(/\s+/);
+        const lastPart = parts[parts.length - 1];
 
+        // إذا كان السطر ينتهي بـ URL، فاعتبره تنسيق سطر واحد
+        if (lastPart && lastPart.startsWith('http')) {
+            const image = parts.pop();
+            const title = parts.join(' ').trim();
+            if (title) { // يجب أن يكون هناك عنوان
+                products.push({
+                    title: title,
+                    image: image,
+                    category: selectedCategory,
+                    size: "6 CM",
+                });
+                tempProduct = {}; // مسح مؤقت بعد الإضافة
+                continue;
+            }
+        }
+
+        // إذا كان هذا السطر هو URL ويتبع عنواناً في السطر السابق (Title \n URL)
+        if (tempProduct.title && !tempProduct.image && trimmedLine.startsWith('http')) {
+            tempProduct.image = trimmedLine;
+        }
+      }
+
+      // إضافة المنتج المكتمل
       if (tempProduct.title && tempProduct.image) {
         products.push({
           title: tempProduct.title,
@@ -130,8 +152,8 @@ const Add = () => {
         });
       } else {
         setFeedback({
-          type: "warning",
-          message: `Completed with some issues. Added ${successCount} stickers, but ${errorCount} failed.`,
+          type: "error", // Changed from warning to error for clear feedback on failures
+          message: `Completed with issues. Added ${successCount} stickers, but ${errorCount} failed. Check console for details.`,
         });
       }
       setBulkText("");
@@ -145,15 +167,14 @@ const Add = () => {
   };
 
   return (
-    <div>
+    <div className="main-app-container">
       <NavbarAdmin />
-<div style={{display:"flex", maxWidth:"1200px", margin:" auto"}}>
- {/* <Url/> */}
 
-      <ClienLinks />
-
-</div>
-     
+      {/* Container for Url and ClienLinks - Note: These components are not fully defined here */}
+      <div style={{width:"100%", border:"red solid 0px", padding: '20px 0'}}>
+        {/* <Url/> */}
+        <ClienLinks/>
+              </div>
 
       <div className="add-form-container">
         <form onSubmit={handleSubmit} className="add-form">
@@ -162,11 +183,13 @@ const Add = () => {
           {feedback.message && (
             <div className={`feedback ${feedback.type}`}>
               {feedback.type === "success" ? (
-                <FiCheckCircle />
+                <FiCheckCircle size={20} />
+              ) : feedback.type === "info" ? (
+                <FiLoader size={20} className="spinner-icon" />
               ) : (
-                <FiAlertTriangle />
+                <FiAlertTriangle size={20} />
               )}
-              {feedback.message}
+              <span>{feedback.message}</span>
             </div>
           )}
 
@@ -194,16 +217,18 @@ const Add = () => {
             <p className="instructions">
               Enter each product on a new line. Format:{" "}
               <strong>Title ImageURL</strong>
+              <br/>
+              Or use two lines: <strong>Title: Product Name</strong> and <strong>Image: Image URL</strong>
             </p>
             <textarea
               id="bulk-data"
               rows="15"
-              placeholder={`Naruto Uzumaki https://example.com/naruto.png
+              placeholder={`Example 1 (Title URL):
+Naruto Uzumaki https://example.com/naruto.png
 
---- OR ---
-
-Sasuke Uchiha
-https://example.com/sasuke.png`}
+Example 2 (Title: / Image:):
+Title: Sasuke Uchiha
+Image: https://example.com/sasuke.png`}
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
               required
@@ -213,12 +238,12 @@ https://example.com/sasuke.png`}
           <button type="submit" className="submit-btn" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <FiLoader className="spinner-icon" />
+                <FiLoader className="spinner-icon" size={20} />
                 <span>Adding...</span>
               </>
             ) : (
               <>
-                <FiPlusCircle />
+                <FiPlusCircle size={20} />
                 <span>Add Products</span>
               </>
             )}

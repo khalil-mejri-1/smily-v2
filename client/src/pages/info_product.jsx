@@ -255,7 +255,7 @@ const totalOriginalPrice = (pricePerUnit * 2 * quantity).toFixed(2);
                   <option value="10 CM">10 CM</option>
                 </select>
               </div>
-              <div className="form-group">
+              <div className="form-group_product">
                 <label>Quantity</label>
                 <div className="quantity-control_product">
                   <button onClick={() => handleQuantityChange(-1)}>-</button>

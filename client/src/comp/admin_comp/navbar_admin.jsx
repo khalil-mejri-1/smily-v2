@@ -49,6 +49,15 @@ const NavbarAdmin = () => {
                         <span>Review</span>
                     </NavLink>
                 </li>
+                  <li>
+                    <NavLink 
+                        to="/admin@admin1230123KHME@@@!!:^/Manager Stickres" 
+                        className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                    >
+                        <FiClipboard />
+                        <span>Manager Stickres</span>
+                    </NavLink>
+                </li>
             </ul>
         </nav>
     );

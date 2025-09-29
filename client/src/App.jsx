@@ -12,6 +12,7 @@ import StickresAdmin from "./comp/admin_comp/stickres_admin";
 import Add from "./comp/admin_comp/add";
 import ClienLinks from "./comp/admin_comp/clien_links";
 import ReviewAdmin from "./comp/admin_comp/Review";
+import ModifierStickres from "./comp/admin_comp/modifier_stickres";
 
 const App = () => {
   return (
@@ -52,6 +53,7 @@ const App = () => {
           <Route path="/admin@admin1230123KHME@@@!!:^/Generate Stickers" element={<StickresAdmin />} />
           <Route path="/admin@admin1230123KHME@@@!!:^/add Stickers"  element={<Add />} />
           <Route path="/admin@admin1230123KHME@@@!!:^/Review"  element={<ReviewAdmin />} />
+          <Route path="/admin@admin1230123KHME@@@!!:^/Manager Stickres"  element={<ModifierStickres />} />
 
           <Route path="/*" element={<Home />} />
         </Routes>
