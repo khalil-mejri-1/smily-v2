@@ -1,15 +1,15 @@
 {
   "version": 2,
   "functions": {
-    "./index.js": {
+    "server/index.js": {
       "runtime": "@vercel/node@3.0.17",
-      "includeFiles": "contour.py, fetch.py, requirements.txt, uploads/**, processed_images/**" 
+      "includeFiles": "server/contour.py, server/fetch.py, server/requirements.txt, server/uploads/**, server/processed_images/**" 
     }
   },
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "server/index.js"
     }
   ]
 }
