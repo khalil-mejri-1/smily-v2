@@ -3,13 +3,7 @@
   "functions": {
     "./index.js": {
       "runtime": "@vercel/node@3.0.17",
-      "includeFiles": [
-        "contour.py",
-        "fetch.py",
-        "requirements.txt",
-        "uploads/**", 
-        "processed_images/**" 
-      ]
+      "includeFiles": "contour.py, fetch.py, requirements.txt, uploads/**, processed_images/**" 
     }
   },
   "routes": [
