@@ -10,6 +10,7 @@ const { spawn } = require("child_process"); // <--- مهم
 const stickres = require("./models/stickres");
 const pack = require("./models/pack");
 const PORT = 3002;
+const PYTHON_COMMAND = process.env.PYTHON_CMD || 'python';
 
 app.use(express.json()); // Middleware to parse JSON requests
 
@@ -88,7 +89,7 @@ app.post("/api/process-images", upload.array('stickers'), (req, res) => {
         processingCount++;
         
         // تشغيل سكريبت Python وتمرير 4 معاملات
-        const pythonProcess = spawn('python', [
+        const pythonProcess = spawn(PYTHON_COMMAND, [
             PYTHON_SCRIPT_PATH, // مسار السكريبت
             inputPath,          // مسار الإدخال
             outputPath,         // مسار الإخراج
@@ -171,7 +172,7 @@ app.post("/run-python-script", (req, res) => {
     );
 
     // تشغيل سكريبت بايثون كعملية فرعية
-    const pythonProcess = spawn("python", [
+    const pythonProcess = spawn(PYTHON_COMMAND, [
         "fetch.py", // اسم ملف سكريبت بايثون
         searchQuery,
         startPage,
