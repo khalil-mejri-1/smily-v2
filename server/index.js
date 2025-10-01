@@ -6,6 +6,7 @@ const Review = require("./models/review");
 const multer = require("multer"); // <--- مهم
 const path = require("path"); // <--- مهم
 const fs = require("fs"); // <--- مهم
+const { spawn } = require("child_process"); // <--- مهم
 const stickres = require("./models/stickres");
 const pack = require("./models/pack");
 const PORT = 3002;
@@ -13,16 +14,11 @@ const PORT = 3002;
 app.use(express.json()); // Middleware to parse JSON requests
 
 // اجعل مجلد 'uploads' عاماً لكي يتمكن المتصفح من عرض الصور
-app.use("/uploads", express.static("uploads"));
 
 const cors = require("cors");
 app.use(cors()); // Enable CORS for cross-origin requests
 
-// تأكد من وجود مجلد uploads و processed_images
-const UPLOADS_DIR = path.join(__dirname, "uploads");
 
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
-if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR);
 
 
 const connectDB = async () => {
@@ -38,6 +34,16 @@ const connectDB = async () => {
 };
 
 connectDB();
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -310,38 +316,67 @@ app.get("/latest", async (req, res) => {
 
 
 app.get("/items/:category", async (req, res) => {
-  const { category } = req.params;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 30;
-  const { subcats } = req.query;
+  const { category } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 30;
+  const { subcats } = req.query;
 
-  try {
-    let query = {};
-    let totalItems;
-    let items;
+  try {
+    let query = {};
+    let totalItems;
+    let items;
 
-    if (subcats) {
-      const subcategoriesArray = subcats.split(",");
-      query = { category: { $in: subcategoriesArray } };
-    } else if (category.toLowerCase() !== "all") {
-      query = { category: category };
-    }
+    if (subcats) {
+      const subcategoriesArray = subcats.split(",");
+      query = { category: { $in: subcategoriesArray } };
+      
+      // جلب العناصر وفقًا لـ subcats (غير عشوائي)
+      totalItems = await stickres.countDocuments(query);
+      items = await stickres
+        .find(query)
+        .sort({ _id: 1 }) 
+        .skip((page - 1) * limit)
+        .limit(limit);
 
-    totalItems = await stickres.countDocuments(query);
-    items = await stickres
-      .find(query)
-      // 💡 التعديل هنا: الترتيب أصبح تصاعدياً (1) لجلب العناصر من الأقدم إلى الأحدث
-      .sort({ _id: 1 }) 
-      .skip((page - 1) * limit)
-      .limit(limit);
+    } else if (category.toLowerCase() === "all") {
+      // 💡 التعديل هنا: جلب عشوائي لجميع العناصر 
+      // استخدام عملية التجميع ($sample) لجلب عينة عشوائية بحجم (limit)
+      
+      // لا يمكن حساب totalItems بسهولة وكفاءة لـ 'all' مع الـ skip/limit
+      // إذا كنت تحتاج إلى totalItems حقيقي لجميع الوثائق:
+      totalItems = await stickres.countDocuments({}); 
+      
+      // جلب عدد (limit) من العناصر عشوائيًا من جميع الوثائق
+      items = await stickres.aggregate([
+        { $match: {} }, // تطابق كل الوثائق (اختياري لكن مفيد في التجميع)
+        { $sample: { size: limit } } // جلب عينة عشوائية بحجم limit
+      ]);
 
-    res.json({ items, total: totalItems });
-  } catch (error) {
-    console.error("Error fetching items:", error);
-    res.status(500).json({ message: "Error fetching items" });
-  }
+      // ملاحظة: لا يمكن تطبيق .skip() بشكل منطقي مع $sample
+      // لأن $sample تقوم بالاختيار العشوائي في كل مرة، مما يعني
+      // أن "الصفحة" الثانية ستأتي بعناصر عشوائية مختلفة تمامًا.
+      // إذا كنت تصر على التصفح العشوائي، فالـ $sample هو الخيار.
+
+    } else {
+      // الفئة محددة وليست "all"
+      query = { category: category };
+      
+      // جلب العناصر وفقًا للفئة (غير عشوائي)
+      totalItems = await stickres.countDocuments(query);
+      items = await stickres
+        .find(query)
+        .sort({ _id: 1 }) 
+        .skip((page - 1) * limit)
+        .limit(limit);
+    }
+    
+    res.json({ items, total: totalItems });
+    
+  } catch (error) {
+    console.error("Error fetching items:", error);
+    res.status(500).json({ message: "Error fetching items" });
+  }
 });
-
 
 
 app.get("/pack_items/:id", async (req, res) => {
