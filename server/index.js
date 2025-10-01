@@ -6,11 +6,9 @@ const Review = require("./models/review");
 const multer = require("multer"); // <--- مهم
 const path = require("path"); // <--- مهم
 const fs = require("fs"); // <--- مهم
-const { spawn } = require("child_process"); // <--- مهم
 const stickres = require("./models/stickres");
 const pack = require("./models/pack");
 const PORT = 3002;
-const PYTHON_COMMAND = process.env.PYTHON_CMD || 'python';
 
 app.use(express.json()); // Middleware to parse JSON requests
 
@@ -22,30 +20,10 @@ app.use(cors()); // Enable CORS for cross-origin requests
 
 // تأكد من وجود مجلد uploads و processed_images
 const UPLOADS_DIR = path.join(__dirname, "uploads");
-const PROCESSED_DIR = path.join(__dirname, "processed_images");
-const PYTHON_SCRIPT_PATH = path.join(__dirname, 'contour.py'); 
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR);
 
-// إعداد التخزين لـ Multer (لحفظ الصور الأصلية مؤقتاً)
-const storage = multer.diskStorage({
-  destination: UPLOADS_DIR,
-  filename: (req, file, cb) => {
-    // إنشاء اسم ملف فريد (لضمان عدم تداخل الأسماء)
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
-    );
-  },
-});
-
-const upload = multer({ storage: storage });
-
-// اجعل مجلد 'uploads' ومجلد 'processed_images' عاماً
-app.use("/uploads", express.static(UPLOADS_DIR));
-app.use("/processed", express.static(PROCESSED_DIR)); // <--- مسار جديد
 
 const connectDB = async () => {
   try {
@@ -60,159 +38,6 @@ const connectDB = async () => {
 };
 
 connectDB();
-
-
-app.post("/api/process-images", upload.array('stickers'), (req, res) => {
-    
-    // 1. استلام متغيرات الاستعلام (Query Parameters)
-    // لا يزال يتم استلام القيمتين، حتى لو لم يتم استخدام قيمة الحجم في البايثون
-    const border_mm = req.query.border || '0.1';
-    const sticker_size_cm = req.query.size || '6'; 
-
-    if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ message: "No files uploaded." });
-    }
-
-    const filesToProcess = req.files;
-    const results = [];
-    let processingCount = 0;
-    
-    // يجب تعريف هذه المتغيرات (path, PROCESSED_DIR, spawn, fs, PYTHON_SCRIPT_PATH) خارج هذا الجزء
-    const base_url = `${req.protocol}://${req.get('host')}`; 
-
-    // 2. معالجة كل ملف على حدة باستخدام Python
-    filesToProcess.forEach(file => {
-        const inputPath = file.path;
-        const outputFilename = `processed-${file.filename}`;
-        const outputPath = path.join(PROCESSED_DIR, outputFilename);
-
-        processingCount++;
-        
-        // تشغيل سكريبت Python وتمرير 4 معاملات
-        const pythonProcess = spawn(PYTHON_COMMAND, [
-            PYTHON_SCRIPT_PATH, // مسار السكريبت
-            inputPath,          // مسار الإدخال
-            outputPath,         // مسار الإخراج
-            border_mm,          // عرض الإطار (مم)
-            sticker_size_cm     // حجم الملصق الأقصى (سم) - ضروري كمعامل رابع
-        ]);
-
-        let pythonOutput = '';
-        let pythonError = '';
-
-        pythonProcess.stdout.on('data', (data) => {
-            pythonOutput += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            pythonError += data.toString();
-        });
-
-        pythonProcess.on('close', (code) => {
-            
-            // 3. تنظيف الملف الأصلي
-            fs.unlink(inputPath, (err) => {
-                if (err) console.error(`Error deleting original file ${inputPath}:`, err);
-            });
-
-            // 4. تسجيل النتيجة
-            if (code !== 0) {
-                console.error(`Python script exited with code ${code}. Error: ${pythonError}`);
-                // تحسين رسالة الخطأ لتكون أكثر وضوحاً
-                const cleanError = pythonError.includes('ERROR_PROCESSING') ? pythonError.split('ERROR_PROCESSING:')[1].trim() : `Script failed with code ${code}.`;
-                
-                results.push({
-                    originalName: file.originalname,
-                    status: 'failed',
-                    message: cleanError,
-                });
-            } else {
-                // النجاح
-                results.push({
-                    originalName: file.originalname,
-                    status: 'success',
-                    url: `${base_url}/processed/${outputFilename}`, 
-                    processedFileName: outputFilename
-                });
-            }
-
-            processingCount--;
-
-            // 5. إرسال الرد النهائي
-            if (processingCount === 0) {
-                res.json({
-                    message: "Images processed successfully.",
-                    results: results
-                });
-            }
-        });
-    });
-});
-
-
-
-
-
-
-
-
-
-app.post("/run-python-script", (req, res) => {
-    // استقبال siteName
-    const { searchQuery, startPage, endPage, siteName } = req.body; 
-
-    if (!searchQuery || !startPage || !endPage || !siteName) {
-        return res
-            .status(400)
-            .json({ error: "الرجاء إرسال جميع المعطيات المطلوبة: كلمة البحث، الصفحات، واسم الموقع." });
-    }
-
-    console.log(
-        `بدء تشغيل سكريبت Python مع المعطيات: ${searchQuery}, ${startPage}, ${endPage} على موقع ${siteName}`
-    );
-
-    // تشغيل سكريبت بايثون كعملية فرعية
-    const pythonProcess = spawn(PYTHON_COMMAND, [
-        "fetch.py", // اسم ملف سكريبت بايثون
-        searchQuery,
-        startPage,
-        endPage,
-        siteName, // تمرير اسم الموقع كمعطى رابع
-    ]);
-
-    let scriptOutput = "";
-    let scriptError = "";
-
-    // استقبال المخرجات العادية من سكريبت بايثون
-    pythonProcess.stdout.on("data", (data) => {
-        console.log(`مخرجات بايثون: ${data.toString()}`);
-        scriptOutput += data.toString();
-    });
-
-    // استقبال مخرجات الخطأ من سكريبت بايثون
-    pythonProcess.stderr.on("data", (data) => {
-        console.error(`خطأ من بايثون: ${data.toString()}`);
-        scriptError += data.toString();
-    });
-
-    // عند انتهاء عملية بايثون
-    pythonProcess.on("close", (code) => {
-        if (code === 0) {
-            console.log("انتهت عملية بايثون بنجاح.");
-            // إرسال البيانات النهائية إلى الواجهة الأمامية
-            res.json({ message: "تمت العملية بنجاح.", output: scriptOutput });
-        } else {
-            console.error(`انتهت عملية بايثون بخطأ (رمز الخروج: ${code})`);
-            res
-                .status(500)
-                .json({
-                    error: "حدث خطأ أثناء تشغيل سكريبت بايثون.",
-                    details: scriptError,
-                });
-        }
-    });
-});
-
 
 
 
