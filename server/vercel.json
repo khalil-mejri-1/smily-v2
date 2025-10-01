@@ -1,17 +1,15 @@
 {
   "version": 2,
-  "functions": {
-    "server/index.js": {
-      "runtime": "@vercel/node@3.0.17",
-      "includeFiles": "server/contour.py, server/fetch.py, server/requirements.txt, server/uploads/**, server/processed_images/**" 
+  "builds": [
+    {
+      "src": "./index.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/(.*)",
       "dest": "/"
     }
-  ],
-  "cleanUrls": true,  // 👈 إضافة هذه الخاصية
-  "trailingSlash": false // 👈 إضافة هذه الخاصية
+  ]
 }
