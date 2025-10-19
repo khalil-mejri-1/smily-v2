@@ -17,7 +17,7 @@ const Url = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:3002/run-python-script', {
+      const response = await axios.post('https://smily-1.onrender.com/run-python-script', {
         searchQuery,
         startPage: parseInt(startPage),
         endPage: parseInt(endPage),

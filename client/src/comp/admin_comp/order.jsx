@@ -34,7 +34,7 @@ const Order = () => {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3002/orders");
+      const res = await axios.get("https://smily-1.onrender.com/orders");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setError("Failed to load orders. Please try again later.");
@@ -52,7 +52,7 @@ const Order = () => {
   const handleDeleteOrder = async (orderId) => {
     if (window.confirm("Are you sure you want to delete this order?")) {
       try {
-        await axios.delete(`http://localhost:3002/orders/${orderId}`);
+        await axios.delete(`https://smily-1.onrender.com/orders/${orderId}`);
         fetchOrders(); // إعادة جلب الطلبات
         setSelectedOrder(null); // إغلاق النافذة المنبثقة
       } catch (err) {
@@ -66,7 +66,7 @@ const Order = () => {
     // تحديد الحالة التالية في الدورة: Pending -> Completed -> Pending
     const nextStatus = currentStatus === "Pending" ? "Completed" : "Pending";
     try {
-      await axios.put(`http://localhost:3002/orders/${orderId}/status`, { status: nextStatus });
+      await axios.put(`https://smily-1.onrender.com/orders/${orderId}/status`, { status: nextStatus });
       alert(`Order status changed to ${nextStatus}`);
       fetchOrders();
       setSelectedOrder(prev => prev ? { ...prev, status: nextStatus } : null);
@@ -81,7 +81,7 @@ const Order = () => {
     try {
       // الخطوة 1: قم بإجراء الطلب إلى الخادم وانتظر الاستجابة
       // ستقوم الاستجابة الآن بإرجاع الطلب المحدث إذا تمت الموافقة
-      const response = await axios.put(`http://localhost:3002/reviews/${reviewId}`, { approved });
+      const response = await axios.put(`https://smily-1.onrender.com/reviews/${reviewId}`, { approved });
       alert("Review status updated!");
 
       // الخطوة 2: تحديث الحالة في الواجهة الأمامية بالبيانات الصحيحة من الخادم

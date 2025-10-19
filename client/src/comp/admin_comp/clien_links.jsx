@@ -35,7 +35,7 @@ const ClienLinks = () => {
 
         try {
             // ملاحظة: هذا يفترض أن لديك خادم Node.js يعمل على المنفذ 3002 لتشغيل كود Python/Selenium
-            const response = await axios.post('http://localhost:3002/run-python-script', {
+            const response = await axios.post('https://smily-1.onrender.com/run-python-script', {
                 searchQuery,
                 startPage: start,
                 endPage: end,

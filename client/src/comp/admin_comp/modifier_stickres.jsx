@@ -25,7 +25,7 @@ const ModifierStickres = () => {
     const [borderWidth, setBorderWidth] = useState(DEFAULT_BORDER_MM);
     const [stickerSizeCM, setStickerSizeCM] = useState(DEFAULT_SIZE_CM);
 
-    const BASE_API_URL = "http://localhost:3002/api/process-images"; // لعملية الإطار/الحجم
+    const BASE_API_URL = "https://smily-1.onrender.com/api/process-images"; // لعملية الإطار/الحجم
 
     // ⭐️ جديد: دالة لاستقبال الصور التي تم إزالة خلفيتها من Removebg
     const handleRemovedBgImages = (images) => {

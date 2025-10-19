@@ -129,7 +129,7 @@ const Add = () => {
       for (let i = 0; i < products.length; i += BATCH_SIZE) {
         const batch = products.slice(i, i + BATCH_SIZE);
         try {
-          await axios.post("http://localhost:3002/stickers/bulk", {
+          await axios.post("https://smily-1.onrender.com/stickers/bulk", {
             products: batch,
           });
           successCount += batch.length;

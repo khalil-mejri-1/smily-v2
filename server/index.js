@@ -9,7 +9,6 @@ const fs = require("fs"); // <--- مهم
 const { spawn } = require("child_process"); // <--- مهم
 const stickres = require("./models/stickres");
 const pack = require("./models/pack");
-const PORT = 3002;
 const PYTHON_COMMAND = process.env.PYTHON_CMD || 'python';
 const axios = require('axios'); // تأكد من تثبيت axios أو استخدام مكتبة طلبات HTTP أخرى
 
@@ -19,8 +18,14 @@ app.use(express.json()); // Middleware to parse JSON requests
 app.use("/uploads", express.static("uploads"));
 
 const cors = require("cors");
-app.use(cors()); // Enable CORS for cross-origin requests
 
+const allowedOrigin = 'https://smily-s1pu.vercel.app'; // <--- استبدل بهذا رابط Vercel الخاص بتطبيقك
+
+app.use(cors({
+    origin: allowedOrigin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // الأفعال التي تسمح بها
+    credentials: true // للسماح بالكوكي أو معلومات الاعتماد إذا كنت تستخدمها
+}));
 
 
 
@@ -954,6 +959,15 @@ app.get("/", (req, res) => {
   res.send("update 2/28/2025");
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// 🚨🚨 ابحث عن هذين السطرين:
+// const PORT = 3002;
+// app.listen(PORT, () => {
+//     console.log(`Server running on http://localhost:${PORT}`);
+// });
+
+// وقم بتغييرهما إلى هذا:
+const SERVER_PORT = process.env.PORT || 3002; // استخدم المنفذ الذي توفره منصة الاستضافة أو 3002 كافتراضي
+
+app.listen(SERVER_PORT, () => {
+  console.log(`Server running on port ${SERVER_PORT}`);
 });
