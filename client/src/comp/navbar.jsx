@@ -510,7 +510,7 @@ useEffect(() => {
   const delayDebounceFn = setTimeout(async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3002/search/products?q=${query}`
+        `https://smily-1.onrender.com/search/products?q=${query}`
       );
 
       // الـ Backend الآن يرسل { items: [...] }

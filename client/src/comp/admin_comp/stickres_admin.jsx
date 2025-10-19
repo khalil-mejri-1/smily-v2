@@ -53,7 +53,7 @@ const StickresAdmin = () => {
                 return;
             }
             try {
-                const response = await axios.get(`http://localhost:3002/stickers/count?category=${selectedCategory}`);
+                const response = await axios.get(`https://smily-1.onrender.com/stickers/count?category=${selectedCategory}`);
                 setCategoryCount(response.data.count);
             } catch (err) {
                 console.error("Failed to fetch category count:", err);
@@ -69,7 +69,7 @@ const StickresAdmin = () => {
             setLoading(true);
             setError(null);
             try {
-                const url = `http://localhost:3002/stickers?page=${page}&limit=20&title=${debouncedQuery}&category=${selectedCategory}`;
+                const url = `https://smily-1.onrender.com/stickers?page=${page}&limit=20&title=${debouncedQuery}&category=${selectedCategory}`;
                 const response = await axios.get(url);
 
                 setStickers(prev => {
@@ -96,7 +96,7 @@ const StickresAdmin = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this sticker?')) return;
         try {
-            await axios.delete(`http://localhost:3002/stickers/${id}`);
+            await axios.delete(`https://smily-1.onrender.com/stickers/${id}`);
             setStickers(stickers.filter(sticker => sticker._id !== id));
             setTotalCount(prevCount => prevCount - 1);
             // ✅ Update category count after deletion
@@ -112,7 +112,7 @@ const StickresAdmin = () => {
             return;
         }
         try {
-            const response = await axios.delete(`http://localhost:3002/stickers/category/${selectedCategory}`);
+            const response = await axios.delete(`https://smily-1.onrender.com/stickers/category/${selectedCategory}`);
             alert(response.data.message);
             // ✅ Reset states after successful deletion
             setStickers([]);
