@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# ^^^ يجب إضافة هذا السطر لتجنب أخطاء الترميز (SyntaxError) عند وجود نصوص عربية أو عالمية.
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -9,7 +12,7 @@ import urllib.parse
 import random # لإضافة عشوائية على User-Agent و فترة الانتظار
 
 # ------------------------------------------------------------------
-#  دوال المساعدة لجلب HTML (Selenium لـ Redbubble، Requests لـ Teepublic)
+#  دوال المساعدة لجلب HTML (Selenium لـ Redbubble، Requests لـ Teepublic)
 # ------------------------------------------------------------------
 
 def get_html_with_selenium(url):
@@ -62,6 +65,8 @@ def get_html_with_requests(url, params):
     try:
         response = requests.get(url, params=params, headers=headers)
         if response.status_code == 200:
+            # استخدام الترميز المستنتج لضمان قراءة المحتوى بشكل صحيح
+            response.encoding = response.apparent_encoding 
             return response.text
         else:
             print(f"WARNING: Requests failed. Status code: {response.status_code}. URL: {response.url}", file=sys.stderr)
@@ -71,12 +76,21 @@ def get_html_with_requests(url, params):
         return None
 
 # ------------------------------------------------------------------
-#  الدالة الرئيسية التي تستدعي الدالة المناسبة
+#  الدالة الرئيسية التي تستدعي الدالة المناسبة
 # ------------------------------------------------------------------
 
 def fetch_html_for_site(input_name, start_page, end_page, site_name):
     site_name = site_name.lower()
     all_html_content = ""
+    
+    # 💥 الحل 2: إعداد الإخراج القياسي (stdout) لاستخدام ترميز UTF-8
+    # هذا يحل مشكلة UnicodeEncodeError عند طباعة المحتوى
+    try:
+        if sys.stdout.encoding.lower() != 'utf-8':
+             sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        # تجاوز في حال عدم دعم reconfigure في إصدار بايثون قديم
+        pass 
     
     if site_name not in ['redbubble', 'teepublic']:
         print(f"Error: Unsupported site name '{site_name}'. Must be 'teepublic' or 'redbubble'.", file=sys.stderr)

@@ -11,6 +11,7 @@ const stickres = require("./models/stickres");
 const pack = require("./models/pack");
 const PORT = 3002;
 const PYTHON_COMMAND = process.env.PYTHON_CMD || 'python';
+const axios = require('axios'); // تأكد من تثبيت axios أو استخدام مكتبة طلبات HTTP أخرى
 
 app.use(express.json()); // Middleware to parse JSON requests
 
@@ -19,6 +20,63 @@ app.use("/uploads", express.static("uploads"));
 
 const cors = require("cors");
 app.use(cors()); // Enable CORS for cross-origin requests
+
+
+
+
+
+// 🚨 انتبه: استبدل القيم التالية بقيمك الحقيقية
+const BOT_TOKEN = '8116879050:AAEwpk4oRCA1aZGg-5p3M6FPMqoRx76pwG0'; 
+const CHAT_ID = '-1003084789772'; 
+
+/**
+ * ترسل إشعار طلب جديد إلى التلغرام.
+ * @param {object} orderData - كائن الطلب المحفوظ في قاعدة البيانات.
+ */
+async function sendTelegramNotification(orderData) {
+    // تنسيق قائمة المنتجات في الطلب
+    const itemsList = orderData.items.map(item => 
+        `  - ${item.title} (${item.size}) x ${item.quantity} | ${item.price}`
+    ).join('\n');
+
+    // بناء نص الرسالة الكلي
+    const messageText = `
+        **💰 طلب جديد قيد الانتظار!**
+        
+        **معلومات الطلب:**
+        رقم الطلب (ID): \`${orderData._id}\`
+        التاريخ: ${new Date(orderData.orderDate).toLocaleString('ar-EG')}
+        الإجمالي: ${orderData.totalPrice}
+        الحالة: ${orderData.status}
+
+        **العميل:**
+        الاسم: ${orderData.customerName}
+        الهاتف: \`${orderData.customerPhone}\`
+
+        **المنتجات المطلوبة:**
+        ${itemsList}
+
+        ---------------------------
+        🚨 يرجى مراجعة لوحة الإدارة فوراً.
+    `;
+
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+
+    try {
+        await axios.post(url, {
+            chat_id: CHAT_ID,
+            text: messageText,
+            parse_mode: 'Markdown' // لاستخدام التنسيق (مثل **الخط الغليظ**)
+        });
+        console.log('✅ تم إرسال إشعار التلغرام بنجاح.');
+    } catch (error) {
+        // إذا فشل الإرسال، لا نريد أن تتعطل عملية إنشاء الطلب، لذا نسجل الخطأ فقط
+        console.error('❌ فشل إرسال إشعار التلغرام:', error.response ? error.response.data : error.message);
+    }
+}
+
+
+
 
 // تأكد من وجود مجلد uploads و processed_images
 const UPLOADS_DIR = path.join(__dirname, "uploads");
@@ -485,38 +543,67 @@ app.get("/latest", async (req, res) => {
 
 
 app.get("/items/:category", async (req, res) => {
-  const { category } = req.params;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 30;
-  const { subcats } = req.query;
+  const { category } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 30;
+  const { subcats } = req.query;
 
-  try {
-    let query = {};
-    let totalItems;
-    let items;
+  try {
+    let query = {};
+    let totalItems;
+    let items;
 
-    if (subcats) {
-      const subcategoriesArray = subcats.split(",");
-      query = { category: { $in: subcategoriesArray } };
-    } else if (category.toLowerCase() !== "all") {
-      query = { category: category };
-    }
+    if (subcats) {
+      const subcategoriesArray = subcats.split(",");
+      query = { category: { $in: subcategoriesArray } };
+      
+      // جلب العناصر وفقًا لـ subcats (غير عشوائي)
+      totalItems = await stickres.countDocuments(query);
+      items = await stickres
+        .find(query)
+        .sort({ _id: 1 }) 
+        .skip((page - 1) * limit)
+        .limit(limit);
 
-    totalItems = await stickres.countDocuments(query);
-    items = await stickres
-      .find(query)
-      // 💡 التعديل هنا: الترتيب أصبح تصاعدياً (1) لجلب العناصر من الأقدم إلى الأحدث
-      .sort({ _id: 1 }) 
-      .skip((page - 1) * limit)
-      .limit(limit);
+    } else if (category.toLowerCase() === "all") {
+      // 💡 التعديل هنا: جلب عشوائي لجميع العناصر 
+      // استخدام عملية التجميع ($sample) لجلب عينة عشوائية بحجم (limit)
+      
+      // لا يمكن حساب totalItems بسهولة وكفاءة لـ 'all' مع الـ skip/limit
+      // إذا كنت تحتاج إلى totalItems حقيقي لجميع الوثائق:
+      totalItems = await stickres.countDocuments({}); 
+      
+      // جلب عدد (limit) من العناصر عشوائيًا من جميع الوثائق
+      items = await stickres.aggregate([
+        { $match: {} }, // تطابق كل الوثائق (اختياري لكن مفيد في التجميع)
+        { $sample: { size: limit } } // جلب عينة عشوائية بحجم limit
+      ]);
 
-    res.json({ items, total: totalItems });
-  } catch (error) {
-    console.error("Error fetching items:", error);
-    res.status(500).json({ message: "Error fetching items" });
-  }
+      // ملاحظة: لا يمكن تطبيق .skip() بشكل منطقي مع $sample
+      // لأن $sample تقوم بالاختيار العشوائي في كل مرة، مما يعني
+      // أن "الصفحة" الثانية ستأتي بعناصر عشوائية مختلفة تمامًا.
+      // إذا كنت تصر على التصفح العشوائي، فالـ $sample هو الخيار.
+
+    } else {
+      // الفئة محددة وليست "all"
+      query = { category: category };
+      
+      // جلب العناصر وفقًا للفئة (غير عشوائي)
+      totalItems = await stickres.countDocuments(query);
+      items = await stickres
+        .find(query)
+        .sort({ _id: 1 }) 
+        .skip((page - 1) * limit)
+        .limit(limit);
+    }
+    
+    res.json({ items, total: totalItems });
+    
+  } catch (error) {
+    console.error("Error fetching items:", error);
+    res.status(500).json({ message: "Error fetching items" });
+  }
 });
-
 
 
 app.get("/pack_items/:id", async (req, res) => {
@@ -657,14 +744,26 @@ app.post("/add_stickres", async (req, res) => {
 // ... (باقي الكود الخاص بك: app.listen, etc.)
 
 app.post("/orders", async (req, res) => {
-  try {
-    const order = new Order(req.body);
-    await order.save();
-    res.status(201).json({ message: "Commande créée avec succès", order });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+    try {
+        const order = new Order(req.body);
+        
+        // 1. حفظ الطلب في قاعدة البيانات
+        await order.save();
+        
+        // 2. إرسال الإشعار بعد النجاح (استخدام toObject() لضمان الحصول على جميع الحقول المحفوظة، مثل الـ _id)
+        await sendTelegramNotification(order.toObject());
+        
+        // 3. إرسال الرد إلى العميل
+        res.status(201).json({ message: "Commande créée avec succès", order });
+        
+    } catch (error) {
+        // تسجيل الخطأ وإرسال الرد 400
+        console.error('Erreur lors de la création de la commande:', error);
+        res.status(400).json({ error: error.message });
+    }
 });
+
+
 
 // ✅ جلب جميع الطلبات مع بيانات المراجعات المرتبطة بها
 app.get("/orders", async (req, res) => {
