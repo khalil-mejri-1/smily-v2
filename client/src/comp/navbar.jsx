@@ -12,6 +12,7 @@ import {
   FaTrashAlt,
 } from "react-icons/fa";
 import logo from "../public/logo.png";
+import logo2 from "../public/logo2.png";
 
 // ===================================================================
 // --- المكونات الأصلية (بدون تغيير) ---
@@ -598,7 +599,7 @@ const hasResults = results.categories?.length > 0 || results.products?.length > 
 
       <header className="mobile-header">
         <Link to="/" className="logo">
-          <img src={logo} alt="Smily Logo" className="logo-icon" />
+          <img src={logo} alt="Smily Logo" className="logo-icon_mobil" />
           <span className="titre_smily">Smily</span>
         </Link>
       </header>
