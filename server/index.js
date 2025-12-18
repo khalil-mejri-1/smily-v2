@@ -3,99 +3,88 @@ const app = express();
 const mongoose = require("mongoose");
 const Order = require("./models/order");
 const Review = require("./models/review");
-const multer = require("multer"); // <--- مهم
-const path = require("path"); // <--- مهم
-const fs = require("fs"); // <--- مهم
-const { spawn } = require("child_process"); // <--- مهم
-const stickres = require("./models/stickres");
-const pack = require("./models/pack");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const { spawn } = require("child_process");
+const stickres = require("./models/stickres"); // يجب التأكد من وجود الموديل
+const pack = require("./models/pack"); // يجب التأكد من وجود الموديل
 const PYTHON_COMMAND = process.env.PYTHON_CMD || 'python';
-const axios = require('axios'); // تأكد من تثبيت axios أو استخدام مكتبة طلبات HTTP أخرى
-
-app.use(express.json()); // Middleware to parse JSON requests
-
-// اجعل مجلد 'uploads' عاماً لكي يتمكن المتصفح من عرض الصور
-app.use("/uploads", express.static("uploads"));
-
+const axios = require('axios');
 const cors = require("cors");
+const archiver = require("archiver");
 
-const allowedOrigin = 'https://smily-s1pu.vercel.app'; // <--- استبدل بهذا رابط Vercel الخاص بتطبيقك
+app.use(express.json());
 
+// إعداد CORS
 app.use(cors({
-    origin: allowedOrigin,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // الأفعال التي تسمح بها
-    credentials: true // للسماح بالكوكي أو معلومات الاعتماد إذا كنت تستخدمها
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
 }));
 
-
-
-
 // 🚨 انتبه: استبدل القيم التالية بقيمك الحقيقية
-const BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'; 
-const CHAT_ID = '***REDACTED***'; 
+const BOT_TOKEN = '***REDACTED***';
+const CHAT_ID = '***REDACTED***';
 
 /**
  * ترسل إشعار طلب جديد إلى التلغرام.
  * @param {object} orderData - كائن الطلب المحفوظ في قاعدة البيانات.
  */
 async function sendTelegramNotification(orderData) {
-    // تنسيق قائمة المنتجات في الطلب
-    const itemsList = orderData.items.map(item => 
-        `  - ${item.title} (${item.size}) x ${item.quantity} | ${item.price}`
-    ).join('\n');
+  // تنسيق قائمة المنتجات في الطلب
+  const itemsList = orderData.items.map(item =>
+    `  - ${item.title} (${item.size}) x ${item.quantity} | ${item.price}`
+  ).join('\n');
 
-    // بناء نص الرسالة الكلي
-    const messageText = `
-        **💰 طلب جديد قيد الانتظار!**
-        
-        **معلومات الطلب:**
-        رقم الطلب (ID): \`${orderData._id}\`
-        التاريخ: ${new Date(orderData.orderDate).toLocaleString('ar-EG')}
-        الإجمالي: ${orderData.totalPrice}
-        الحالة: ${orderData.status}
+  // بناء نص الرسالة الكلي
+  const messageText = `
+        **💰 طلب جديد قيد الانتظار!**
+        
+        **معلومات الطلب:**
+        رقم الطلب (ID): \`${orderData._id}\`
+        التاريخ: ${new Date(orderData.orderDate).toLocaleString('ar-EG')}
+        الإجمالي: ${orderData.totalPrice}
+        الحالة: ${orderData.status}
 
-        **العميل:**
-        الاسم: ${orderData.customerName}
-        الهاتف: \`${orderData.customerPhone}\`
+        **العميل:**
+        الاسم: ${orderData.customerName}
+        الهاتف: \`${orderData.customerPhone}\`
 
-        **المنتجات المطلوبة:**
-        ${itemsList}
+        **المنتجات المطلوبة:**
+        ${itemsList}
 
-        ---------------------------
-        🚨 يرجى مراجعة لوحة الإدارة فوراً.
-    `;
+        ---------------------------
+        🚨 يرجى مراجعة لوحة الإدارة فوراً.
+    `;
 
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
-    try {
-        await axios.post(url, {
-            chat_id: CHAT_ID,
-            text: messageText,
-            parse_mode: 'Markdown' // لاستخدام التنسيق (مثل **الخط الغليظ**)
-        });
-        console.log('✅ تم إرسال إشعار التلغرام بنجاح.');
-    } catch (error) {
-        // إذا فشل الإرسال، لا نريد أن تتعطل عملية إنشاء الطلب، لذا نسجل الخطأ فقط
-        console.error('❌ فشل إرسال إشعار التلغرام:', error.response ? error.response.data : error.message);
-    }
+  try {
+    await axios.post(url, {
+      chat_id: CHAT_ID,
+      text: messageText,
+      parse_mode: 'Markdown'
+    });
+    console.log('✅ تم إرسال إشعار التلغرام بنجاح.');
+  } catch (error) {
+    console.error('❌ فشل إرسال إشعار التلغرام:', error.response ? error.response.data : error.message);
+  }
 }
 
 
-
-
-// تأكد من وجود مجلد uploads و processed_images
+// إعداد مسارات الملفات
 const UPLOADS_DIR = path.join(__dirname, "uploads");
 const PROCESSED_DIR = path.join(__dirname, "processed_images");
-const PYTHON_SCRIPT_PATH = path.join(__dirname, 'contour.py'); 
+const PYTHON_SCRIPT_PATH = path.join(__dirname, 'contour.py');
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR);
 
-// إعداد التخزين لـ Multer (لحفظ الصور الأصلية مؤقتاً)
+// إعداد التخزين لـ Multer
 const storage = multer.diskStorage({
   destination: UPLOADS_DIR,
   filename: (req, file, cb) => {
-    // إنشاء اسم ملف فريد (لضمان عدم تداخل الأسماء)
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(
       null,
@@ -106,10 +95,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// اجعل مجلد 'uploads' ومجلد 'processed_images' عاماً
+// جعل المجلدات عامة
 app.use("/uploads", express.static(UPLOADS_DIR));
-app.use("/processed", express.static(PROCESSED_DIR)); // <--- مسار جديد
+app.use("/processed", express.static(PROCESSED_DIR));
 
+// اتصال قاعدة البيانات
 const connectDB = async () => {
   try {
     const uri =
@@ -125,276 +115,232 @@ const connectDB = async () => {
 connectDB();
 
 
+// ------------------------------------------------------------------
+//  مسارات معالجة الصور وتشغيل سكريبت بايثون
+// ------------------------------------------------------------------
+
 app.post("/api/process-images", upload.array('stickers'), (req, res) => {
-    
-    // 1. استلام متغيرات الاستعلام (Query Parameters)
-    // لا يزال يتم استلام القيمتين، حتى لو لم يتم استخدام قيمة الحجم في البايثون
-    const border_mm = req.query.border || '0.1';
-    const sticker_size_cm = req.query.size || '6'; 
+  const border_mm = req.query.border || '0.1';
+  const sticker_size_cm = req.query.size || '6';
 
-    if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ message: "No files uploaded." });
-    }
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "No files uploaded." });
+  }
 
-    const filesToProcess = req.files;
-    const results = [];
-    let processingCount = 0;
-    
-    // يجب تعريف هذه المتغيرات (path, PROCESSED_DIR, spawn, fs, PYTHON_SCRIPT_PATH) خارج هذا الجزء
-    const base_url = `${req.protocol}://${req.get('host')}`; 
+  const filesToProcess = req.files;
+  const results = [];
+  let processingCount = 0;
+  const base_url = `${req.protocol}://${req.get('host')}`;
 
-    // 2. معالجة كل ملف على حدة باستخدام Python
-    filesToProcess.forEach(file => {
-        const inputPath = file.path;
-        const outputFilename = `processed-${file.filename}`;
-        const outputPath = path.join(PROCESSED_DIR, outputFilename);
+  filesToProcess.forEach(file => {
+    const inputPath = file.path;
+    // Force output to be .png to support transparency (RGBA)
+    const originalNameWithoutExt = path.parse(file.filename).name;
+    const outputFilename = `processed-${originalNameWithoutExt}.png`;
+    const outputPath = path.join(PROCESSED_DIR, outputFilename);
 
-        processingCount++;
-        
-        // تشغيل سكريبت Python وتمرير 4 معاملات
-        const pythonProcess = spawn(PYTHON_COMMAND, [
-            PYTHON_SCRIPT_PATH, // مسار السكريبت
-            inputPath,          // مسار الإدخال
-            outputPath,         // مسار الإخراج
-            border_mm,          // عرض الإطار (مم)
-            sticker_size_cm     // حجم الملصق الأقصى (سم) - ضروري كمعامل رابع
-        ]);
+    processingCount++;
 
-        let pythonOutput = '';
-        let pythonError = '';
-
-        pythonProcess.stdout.on('data', (data) => {
-            pythonOutput += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            pythonError += data.toString();
-        });
-
-        pythonProcess.on('close', (code) => {
-            
-            // 3. تنظيف الملف الأصلي
-            fs.unlink(inputPath, (err) => {
-                if (err) console.error(`Error deleting original file ${inputPath}:`, err);
-            });
-
-            // 4. تسجيل النتيجة
-            if (code !== 0) {
-                console.error(`Python script exited with code ${code}. Error: ${pythonError}`);
-                // تحسين رسالة الخطأ لتكون أكثر وضوحاً
-                const cleanError = pythonError.includes('ERROR_PROCESSING') ? pythonError.split('ERROR_PROCESSING:')[1].trim() : `Script failed with code ${code}.`;
-                
-                results.push({
-                    originalName: file.originalname,
-                    status: 'failed',
-                    message: cleanError,
-                });
-            } else {
-                // النجاح
-                results.push({
-                    originalName: file.originalname,
-                    status: 'success',
-                    url: `${base_url}/processed/${outputFilename}`, 
-                    processedFileName: outputFilename
-                });
-            }
-
-            processingCount--;
-
-            // 5. إرسال الرد النهائي
-            if (processingCount === 0) {
-                res.json({
-                    message: "Images processed successfully.",
-                    results: results
-                });
-            }
-        });
-    });
-});
-
-
-
-
-
-
-
-
-
-app.post("/run-python-script", (req, res) => {
-    // استقبال siteName
-    const { searchQuery, startPage, endPage, siteName } = req.body; 
-
-    if (!searchQuery || !startPage || !endPage || !siteName) {
-        return res
-            .status(400)
-            .json({ error: "الرجاء إرسال جميع المعطيات المطلوبة: كلمة البحث، الصفحات، واسم الموقع." });
-    }
-
-    console.log(
-        `بدء تشغيل سكريبت Python مع المعطيات: ${searchQuery}, ${startPage}, ${endPage} على موقع ${siteName}`
-    );
-
-    // تشغيل سكريبت بايثون كعملية فرعية
     const pythonProcess = spawn(PYTHON_COMMAND, [
-        "fetch.py", // اسم ملف سكريبت بايثون
-        searchQuery,
-        startPage,
-        endPage,
-        siteName, // تمرير اسم الموقع كمعطى رابع
+      PYTHON_SCRIPT_PATH,
+      inputPath,
+      outputPath,
+      border_mm,
+      sticker_size_cm
     ]);
 
-    let scriptOutput = "";
-    let scriptError = "";
+    let pythonOutput = '';
+    let pythonError = '';
 
-    // استقبال المخرجات العادية من سكريبت بايثون
-    pythonProcess.stdout.on("data", (data) => {
-        console.log(`مخرجات بايثون: ${data.toString()}`);
-        scriptOutput += data.toString();
+    pythonProcess.stdout.on('data', (data) => {
+      pythonOutput += data.toString();
     });
 
-    // استقبال مخرجات الخطأ من سكريبت بايثون
-    pythonProcess.stderr.on("data", (data) => {
-        console.error(`خطأ من بايثون: ${data.toString()}`);
-        scriptError += data.toString();
+    pythonProcess.stderr.on('data', (data) => {
+      pythonError += data.toString();
     });
 
-    // عند انتهاء عملية بايثون
-    pythonProcess.on("close", (code) => {
-        if (code === 0) {
-            console.log("انتهت عملية بايثون بنجاح.");
-            // إرسال البيانات النهائية إلى الواجهة الأمامية
-            res.json({ message: "تمت العملية بنجاح.", output: scriptOutput });
-        } else {
-            console.error(`انتهت عملية بايثون بخطأ (رمز الخروج: ${code})`);
-            res
-                .status(500)
-                .json({
-                    error: "حدث خطأ أثناء تشغيل سكريبت بايثون.",
-                    details: scriptError,
-                });
-        }
+    pythonProcess.on('close', (code) => {
+
+      fs.unlink(inputPath, (err) => {
+        if (err) console.error(`Error deleting original file ${inputPath}:`, err);
+      });
+
+      if (code !== 0) {
+        console.error(`Python script exited with code ${code}. Error: ${pythonError}`);
+        const cleanError = pythonError.includes('ERROR_PROCESSING') ? pythonError.split('ERROR_PROCESSING:')[1].trim() : `Script failed with code ${code}.`;
+
+        results.push({
+          originalName: file.originalname,
+          status: 'failed',
+          message: cleanError,
+        });
+      } else {
+        results.push({
+          originalName: file.originalname,
+          status: 'success',
+          url: `${base_url}/processed/${outputFilename}`,
+          processedFileName: outputFilename
+        });
+      }
+
+      processingCount--;
+
+      if (processingCount === 0) {
+        res.json({
+          message: "Images processed successfully.",
+          results: results
+        });
+      }
     });
+  });
 });
 
 
+// مسار تشغيل سكريبت البايثون (Scraping)
+app.post("/run-python-script", (req, res) => {
+  const { searchQuery, startPage, endPage, siteName } = req.body;
+
+  if (!searchQuery || !startPage || !endPage || !siteName) {
+    return res
+      .status(400)
+      .json({ error: "الرجاء إرسال جميع المعطيات المطلوبة: كلمة البحث، الصفحات، واسم الموقع." });
+  }
+
+  console.log(
+    `بدء تشغيل سكريبت Python مع المعطيات: ${searchQuery}, ${startPage}, ${endPage} على موقع ${siteName}`
+  );
+
+  const pythonProcess = spawn(PYTHON_COMMAND, [
+    "fetch.py",
+    searchQuery,
+    startPage,
+    endPage,
+    siteName,
+  ]);
+
+  let scriptOutput = "";
+  let scriptError = "";
+
+  pythonProcess.stdout.on("data", (data) => {
+    console.log(`مخرجات بايثون: ${data.toString()}`);
+    scriptOutput += data.toString();
+  });
+
+  pythonProcess.stderr.on("data", (data) => {
+    console.error(`خطأ من بايثون: ${data.toString()}`);
+    scriptError += data.toString();
+  });
+
+  pythonProcess.on("close", (code) => {
+    if (code === 0) {
+      console.log("انتهت عملية بايثون بنجاح.");
+      res.json({ message: "تمت العملية بنجاح.", output: scriptOutput });
+    } else {
+      console.error(`انتهت عملية بايثون بخطأ (رمز الخروج: ${code})`);
+      res
+        .status(500)
+        .json({
+          error: "حدث خطأ أثناء تشغيل سكريبت بايثون.",
+          details: scriptError,
+        });
+    }
+  });
+});
 
 
+// ------------------------------------------------------------------
+//  مسارات الملصقات (Stickers)
+// ------------------------------------------------------------------
 
-
+// بحث Atlas Search متقدم
 app.get("/search/products", async (req, res) => {
-    const { q } = req.query;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 30;
+  const { q } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 30;
 
-    if (!q) {
-        return res.json({ items: [], total: 0 });
-    }
+  if (!q) {
+    return res.json({ items: [], total: 0 });
+  }
 
-    try {
-        // بناء مرحلة بحث تستغل الفهرس متعدد الأنواع
-        const searchStage = {
-            $search: {
-                index: 'default',
-                compound: {
-                    // "should" تعني أن أيًا من هذه الشروط يكفي للعثور على نتيجة
-                    should: [
-                        // أعطِ أولوية قصوى للبحث الجزئي (autocomplete) في العنوان
-                        {
-                            autocomplete: {
-                                query: q,
-                                path: 'title',
-                                score: { boost: { value: 5 } } // زيادة نقاط الأولوية
-                            }
-                        },
-                        // أعطِ أولوية للبحث الجزئي في الفئة
-                        {
-                            autocomplete: {
-                                query: q,
-                                path: 'category',
-                                score: { boost: { value: 3 } }
-                            }
-                        },
-                        // ابحث أيضًا ككلمة كاملة (text) في العنوان
-                        {
-                            text: {
-                                query: q,
-                                path: 'title',
-                                fuzzy: { maxEdits: 1 } // السماح بخطأ إملائي واحد
-                            }
-                        }
-                    ]
-                }
+  try {
+    const searchStage = {
+      $search: {
+        index: 'default',
+        compound: {
+          should: [
+            {
+              autocomplete: {
+                query: q,
+                path: 'title',
+                score: { boost: { value: 5 } }
+              }
+            },
+            {
+              autocomplete: {
+                query: q,
+                path: 'category',
+                score: { boost: { value: 3 } }
+              }
+            },
+            {
+              text: {
+                query: q,
+                path: 'title',
+                fuzzy: { maxEdits: 1 }
+              }
             }
-        };
+          ]
+        }
+      }
+    };
 
-        const facetStage = {
-            $facet: {
-                items: [
-                    { $sort: { score: -1 } }, // ترتيب النتائج حسب الأولوية (النقاط)
-                    { $skip: (page - 1) * limit },
-                    { $limit: limit }
-                ],
-                total: [ { $count: 'count' } ]
-            }
-        };
+    const facetStage = {
+      $facet: {
+        items: [
+          { $sort: { score: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit }
+        ],
+        total: [{ $count: 'count' }]
+      }
+    };
 
-        const aggregationResult = await stickres.aggregate([searchStage, facetStage]);
-        
-        const data = aggregationResult[0];
-        const items = data.items || [];
-        const total = (data.total && data.total.length > 0) ? data.total[0].count : 0;
+    const aggregationResult = await stickres.aggregate([searchStage, facetStage]);
 
-        // ✅ إرسال 'items' و 'total' فقط كما كان في الأصل.
-        // الـ Frontend هو من سيقوم باستخلاص الفئات من الـ 'items'.
-        res.json({ items, total }); 
-    
-    } catch (error) {
-        console.error("Error fetching Atlas Search results:", error);
-        res.status(500).json({ message: "Error during search", error: error.message });
-    }
+    const data = aggregationResult[0];
+    const items = data.items || [];
+    const total = (data.total && data.total.length > 0) ? data.total[0].count : 0;
+
+    res.json({ items, total });
+
+  } catch (error) {
+    console.error("Error fetching Atlas Search results:", error);
+    res.status(500).json({ message: "Error during search", error: error.message });
+  }
 });
 
-
-
-
-
-// ... (الكود الموجود لديك مسبقًا مثل express, mongoose.connect, etc)
-
-// ✅ مسار جديد لجلب جميع الملصقات
-// ✅ مسار محدّث لجلب الملصقات مع دعم Pagination
-
+// جلب الملصقات مع Pagination والبحث (واجهة المستخدم العادية)
 app.get("/stickers", async (req, res) => {
   try {
-    // --- 1. الحصول على متغيرات الصفحة والحد الأقصى ---
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-
-    // --- ✨ 2. الحصول على مصطلح البحث من الرابط ---
-    // سيأتي من الرابط بهذا الشكل: /stickers?title=naruto
     const titleQuery = req.query.title || "";
 
-    // --- ✨ 3. بناء فلتر البحث ---
-    // هذا هو الجزء الأهم. سنقوم بإنشاء فلتر ديناميكي
     const filter = {};
     if (titleQuery) {
-      // إذا كان هناك مصطلح بحث، قم بإضافته للفلتر
-      // 'i' تجعل البحث غير حساس لحالة الأحرف (Naruto or naruto)
       filter.title = { $regex: titleQuery, $options: "i" };
     }
 
-    // --- ✨ 4. استخدام الفلتر في الاستعلامات ---
-    // الآن، سيتم حساب العدد الإجمالي بناءً على الفلتر (إما كل المنتجات أو نتائج البحث فقط)
     const totalItems = await stickres.countDocuments(filter);
 
-    // وسيتم البحث عن المنتجات باستخدام نفس الفلتر (تم تغيير query إلى filter)
     items = await stickres
-      .find(filter) // تم التصحيح هنا: استخدام المتغير filter
-      .sort({ _id: -1 }) // هذا الجزء يقوم بفرز جميع المنتجات من الأحدث إلى الأقدم
-      .skip(skip) // استخدام skip بدلاً من إعادة الحساب
+      .find(filter)
+      .sort({ _id: -1 })
+      .skip(skip)
       .limit(limit);
 
-    // --- 5. إرسال الاستجابة ---
     res.json({
       items,
       totalItems: totalItems,
@@ -407,17 +353,46 @@ app.get("/stickers", async (req, res) => {
   }
 });
 
-// ✅ New endpoint to delete all stickers in a specific category
+// جلب الملصقات مع Pagination والبحث (واجهة المشرف)
+app.get("/stickers_admin", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const title = req.query.title || "";
+
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (title) {
+      query.title = { $regex: title, $options: "i" };
+    }
+
+    const items = await stickres.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalItems = await stickres.countDocuments(query);
+    const hasNextPage = page * limit < totalItems;
+
+    res.json({
+      items,
+      hasNextPage,
+    });
+  } catch (error) {
+    console.error("Error fetching stickers:", error);
+    res.status(500).send("Server Error");
+  }
+});
+
+// حذف جميع الملصقات في فئة محددة
 app.delete("/stickers/category/:category", async (req, res) => {
   const categoryToDelete = req.params.category;
-
   if (!categoryToDelete) {
     return res.status(400).json({ message: "Category name is required." });
   }
-
   try {
     const result = await stickres.deleteMany({ category: categoryToDelete });
-
     if (result.deletedCount > 0) {
       res.status(200).json({
         message: `Successfully deleted ${result.deletedCount} stickers from the category: ${categoryToDelete}.`,
@@ -436,14 +411,12 @@ app.delete("/stickers/category/:category", async (req, res) => {
   }
 });
 
-// ✅ New endpoint to get the count of stickers in a specific category
+// جلب عدد الملصقات في فئة محددة
 app.get("/stickers/count", async (req, res) => {
   const { category } = req.query;
-
   if (!category) {
     return res.status(400).json({ message: "Category name is required." });
   }
-
   try {
     const count = await stickres.countDocuments({ category: category });
     res.status(200).json({ count: count });
@@ -454,50 +427,8 @@ app.get("/stickers/count", async (req, res) => {
       .json({ message: "Failed to fetch count.", error: error.message });
   }
 });
-// server/index.js (أو اسم ملف الخادم لديك)
 
-// ... (imports and other app setup)
-
-app.get("/stickers_admin", async (req, res) => {
-  try {
-    // 1. استخراج المتغيرات من الطلب مع قيم افتراضية
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const title = req.query.title || ""; // ✨ استخراج عنوان البحث
-
-    const skip = (page - 1) * limit;
-
-    // 2. ✨ بناء كائن الاستعلام (query) للمنغودب
-    // إذا كان هناك عنوان للبحث، سنبحث عنه، وإلا سيكون الكائن فارغًا (لجلب الكل)
-    const query = {};
-    if (title) {
-      // $regex يسمح بالبحث عن جزء من النص وليس النص الكامل
-      // 'i' تجعل البحث غير حساس لحالة الأحرف (A-Z, a-z)
-      query.title = { $regex: title, $options: "i" };
-    }
-
-    // 3. تنفيذ الاستعلام مع الفلترة والـ pagination
-    const items = await Stickres.find(query) // Stickres هو اسم الموديل
-      .sort({ createdAt: -1 }) // اختياري: لترتيب النتائج
-      .skip(skip)
-      .limit(limit);
-
-    // 4. التأكد إذا كانت هناك صفحة تالية
-    const totalItems = await Stickres.countDocuments(query);
-    const hasNextPage = page * limit < totalItems;
-
-    res.json({
-      items,
-      hasNextPage,
-    });
-  } catch (error) {
-    console.error("Error fetching stickers:", error);
-    res.status(500).send("Server Error");
-  }
-});
-
-// ... (the rest of your server code)
-// ✅ مسار جديد لحذف ملصق معين بواسطة الـ ID
+// حذف ملصق معين بواسطة الـ ID
 app.delete("/stickers/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -506,7 +437,6 @@ app.delete("/stickers/:id", async (req, res) => {
     if (!result) {
       return res.status(404).json({ message: "Sticker not found" });
     }
-
     res.json({ message: "Sticker deleted successfully" });
   } catch (error) {
     console.error("Error deleting sticker:", error);
@@ -514,39 +444,28 @@ app.delete("/stickers/:id", async (req, res) => {
   }
 });
 
-
-
-
-
-// GET Route لعرض آخر منتج (ملصق) تم تسجيله في قاعدة البيانات
+// جلب آخر ملصق تم تسجيله
 app.get("/latest", async (req, res) => {
-    try {
-        const latestSticker = await stickres
-            .findOne() // يمكن استخدام findOne() أو find().limit(1)
-            // الترتيب التنازلي بناءً على _id لضمان جلب الأحدث أولاً
-            .sort({ _id: -1 }); 
+  try {
+    const latestSticker = await stickres
+      .findOne()
+      .sort({ _id: -1 });
 
-        // التحقق مما إذا تم العثور على أي منتج
-        if (!latestSticker) {
-            return res.status(404).json({ message: "No stickers found in the database." });
-        }
-
-        // إرسال المنتج الأحدث كاستجابة
-        res.status(200).json(latestSticker);
-
-    } catch (error) {
-        console.error("Error fetching the latest sticker:", error);
-        res.status(500).json({ 
-            message: "Failed to fetch the latest sticker from the database.",
-            error: error.message
-        });
+    if (!latestSticker) {
+      return res.status(404).json({ message: "No stickers found in the database." });
     }
+    res.status(200).json(latestSticker);
+
+  } catch (error) {
+    console.error("Error fetching the latest sticker:", error);
+    res.status(500).json({
+      message: "Failed to fetch the latest sticker from the database.",
+      error: error.message
+    });
+  }
 });
 
-
-
-
-
+// جلب العناصر حسب الفئة (مع دعم العشوائية لـ "all")
 app.get("/items/:category", async (req, res) => {
   const { category } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -561,49 +480,33 @@ app.get("/items/:category", async (req, res) => {
     if (subcats) {
       const subcategoriesArray = subcats.split(",");
       query = { category: { $in: subcategoriesArray } };
-      
-      // جلب العناصر وفقًا لـ subcats (غير عشوائي)
       totalItems = await stickres.countDocuments(query);
       items = await stickres
         .find(query)
-        .sort({ _id: 1 }) 
+        .sort({ _id: 1 })
         .skip((page - 1) * limit)
         .limit(limit);
 
     } else if (category.toLowerCase() === "all") {
-      // 💡 التعديل هنا: جلب عشوائي لجميع العناصر 
-      // استخدام عملية التجميع ($sample) لجلب عينة عشوائية بحجم (limit)
-      
-      // لا يمكن حساب totalItems بسهولة وكفاءة لـ 'all' مع الـ skip/limit
-      // إذا كنت تحتاج إلى totalItems حقيقي لجميع الوثائق:
-      totalItems = await stickres.countDocuments({}); 
-      
-      // جلب عدد (limit) من العناصر عشوائيًا من جميع الوثائق
+      totalItems = await stickres.countDocuments({});
+
       items = await stickres.aggregate([
-        { $match: {} }, // تطابق كل الوثائق (اختياري لكن مفيد في التجميع)
-        { $sample: { size: limit } } // جلب عينة عشوائية بحجم limit
+        { $match: {} },
+        { $sample: { size: limit } }
       ]);
 
-      // ملاحظة: لا يمكن تطبيق .skip() بشكل منطقي مع $sample
-      // لأن $sample تقوم بالاختيار العشوائي في كل مرة، مما يعني
-      // أن "الصفحة" الثانية ستأتي بعناصر عشوائية مختلفة تمامًا.
-      // إذا كنت تصر على التصفح العشوائي، فالـ $sample هو الخيار.
-
     } else {
-      // الفئة محددة وليست "all"
       query = { category: category };
-      
-      // جلب العناصر وفقًا للفئة (غير عشوائي)
       totalItems = await stickres.countDocuments(query);
       items = await stickres
         .find(query)
-        .sort({ _id: 1 }) 
+        .sort({ _id: 1 })
         .skip((page - 1) * limit)
         .limit(limit);
     }
-    
+
     res.json({ items, total: totalItems });
-    
+
   } catch (error) {
     console.error("Error fetching items:", error);
     res.status(500).json({ message: "Error fetching items" });
@@ -611,20 +514,20 @@ app.get("/items/:category", async (req, res) => {
 });
 
 
+// جلب صور الملصقات داخل حزمة
 app.get("/pack_items/:id", async (req, res) => {
-  const { id } = req.params; // استخراج المعرف من الرابط
+  const { id } = req.params;
 
   try {
-    const item = await pack.findById(id); // البحث عن العنصر حسب المعرف
+    const item = await pack.findById(id);
 
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    // استخراج جميع الصور من العنصر
     const images = [
-      ...item.stickers.map((sticker) => sticker.image), // جميع صور الملصقات
-    ].filter(Boolean); // حذف القيم الفارغة (null أو undefined)
+      ...item.stickers.map((sticker) => sticker.image),
+    ].filter(Boolean);
 
     res.json({ images });
   } catch (error) {
@@ -633,18 +536,16 @@ app.get("/pack_items/:id", async (req, res) => {
   }
 });
 
+// حذف جميع المنتجات (Admin Utility)
 app.delete("/delete-all-products", async (req, res) => {
   try {
-    await stickres.deleteMany({}); // حذف جميع المنتجات من القاعدة المحددة
+    await stickres.deleteMany({});
     res.json({
       success: true,
-      message: `All products deleted from ${DATABASE_NAME} successfully!`,
+      message: `All products deleted successfully!`,
     });
   } catch (error) {
-    // طباعة التفاصيل في الـ console
     console.error(error);
-
-    // إرسال تفاصيل الخطأ في الاستجابة
     res
       .status(500)
       .json({
@@ -655,71 +556,7 @@ app.delete("/delete-all-products", async (req, res) => {
   }
 });
 
-// app.get("/items/:category", async (req, res) => {
-//   const { category } = req.params; // Extract category from URL
-
-//   try {
-//       const items = await stickres.find({ category }) // Fetch items by category
-//           .sort({ _id: -1 }); // Sort by latest items
-
-//       res.json({ items });
-//   } catch (error) {
-//       console.error("Error fetching items:", error);
-//       res.status(500).json({ message: "Error fetching items" });
-//   }
-// });
-
-// ✅ مسار موحّد لإضافة تعليق (سواء مع صورة أو بدون)
-// The multer middleware (upload.single) will handle the file if it exists,
-// but won't throw an error if it doesn't.
-app.post("/reviews", upload.single("image"), async (req, res) => {
-  try {
-    // 1. استخراج البيانات من الطلب
-    const { customerName, comment } = req.body;
-
-    // 2. التحقق من وجود الاسم والتعليق (وهي الحقول الإجبارية)
-    if (!customerName || !comment) {
-      // استخدام نفس رسالة الخطأ لتسهيل التعامل معها في الفرونت-إند
-      return res.status(400).json({ error: "الاسم والتعليق حقول إجبارية." });
-    }
-
-    // 3. بناء كائن التعليق الجديد
-    const reviewData = {
-      customerName,
-      comment,
-      // 4. التحقق من وجود ملف مرفق. إذا كان موجودًا، احفظ مساره
-      // إذا لم يكن موجودًا، سيتم تجاهل هذا الحقل (أو يمكنك تعيينه إلى null)
-      imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
-    };
-
-    // 5. إنشاء وحفظ التعليق في قاعدة البيانات
-    const newReview = new Review(reviewData);
-    await newReview.save();
-
-    // 6. إرسال استجابة ناجحة
-    res
-      .status(201)
-      .json({ message: "شكرًا لك! تم إرسال تعليقك بنجاح.", review: newReview });
-  } catch (error) {
-    // 7. التعامل مع أي أخطاء أخرى (مثل أخطاء قاعدة البيانات)
-    console.error("Error submitting review:", error);
-    res.status(500).json({ error: "حدث خطأ في الخادم أثناء إرسال التعليق." });
-  }
-});
-
-app.get("/reviews", async (req, res) => {
-  try {
-    // تم حذف شرط الموافقة مؤقتًا للتحقق فقط
-    const reviews = await Review.find({}).sort({ createdAt: -1 });
-
-    // إذا ظهرت التعليقات الآن، فهذا يؤكد أن المشكلة كانت في عدم وجود تعليقات موافق عليها
-    res.json(reviews);
-  } catch (error) {
-    console.error("Error fetching reviews:", error);
-    res.status(500).json({ message: "Failed to fetch reviews" });
-  }
-});
-
+// إضافة ملصق واحد
 app.post("/add_stickres", async (req, res) => {
   try {
     const newstickres = new stickres(req.body);
@@ -730,111 +567,7 @@ app.post("/add_stickres", async (req, res) => {
   }
 });
 
-// app.get("/items", async (req, res) => {
-//     try {
-//       const items = await stickres.find().sort({ _id: -1 }); // Get all items sorted by _id in descending order
-
-//       res.json({ items });
-//     } catch (error) {
-//       console.error("Error fetching items:", error);
-//       res.status(500).json({ message: "Error fetching items" });
-//     }
-//   });
-
-// ... (الكود الحالي الخاص بك: express, mongoose, etc.)
-
-// ✅✅ نقطة نهاية جديدة لجلب اقتراحات البحث ✅✅
-// في ملف index.js
-
-// ... (باقي الكود الخاص بك: app.listen, etc.)
-
-app.post("/orders", async (req, res) => {
-    try {
-        const order = new Order(req.body);
-        
-        // 1. حفظ الطلب في قاعدة البيانات
-        await order.save();
-        
-        // 2. إرسال الإشعار بعد النجاح (استخدام toObject() لضمان الحصول على جميع الحقول المحفوظة، مثل الـ _id)
-        await sendTelegramNotification(order.toObject());
-        
-        // 3. إرسال الرد إلى العميل
-        res.status(201).json({ message: "Commande créée avec succès", order });
-        
-    } catch (error) {
-        // تسجيل الخطأ وإرسال الرد 400
-        console.error('Erreur lors de la création de la commande:', error);
-        res.status(400).json({ error: error.message });
-    }
-});
-
-
-
-// ✅ جلب جميع الطلبات مع بيانات المراجعات المرتبطة بها
-app.get("/orders", async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate("review") // ✅ هذا هو السطر الذي سيصلح المشكلة
-      .sort({ orderDate: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des commandes:", error); // لتحسين تتبع الأخطاء
-    res
-      .status(500)
-      .json({ error: "Erreur lors de la récupération des commandes" });
-  }
-});
-
-// ✅ تحديث حالة المراجعة مع تطبيق الخصم على الطلب المرتبط
-app.put("/reviews/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { approved } = req.body;
-
-    // الخطوة 1: تحديث المراجعة أولاً
-    const updatedReview = await Review.findByIdAndUpdate(
-      id,
-      { approved },
-      { new: true } // `new: true` يعيد المستند بعد التحديث
-    );
-
-    if (!updatedReview) {
-      return res.status(404).json({ error: "Review not found" });
-    }
-
-    // الخطوة 2: إذا تمت الموافقة على المراجعة (approved === true)
-    if (approved) {
-      // ابحث عن الطلب الذي يحتوي على هذه المراجعة
-      const orderToUpdate = await Order.findOne({ review: id });
-
-      if (orderToUpdate) {
-        // الخطوة 3: حساب السعر الجديد وتحديث الطلب
-        const originalPrice = parseFloat(orderToUpdate.totalPrice);
-        const discountedPrice = originalPrice * 0.95; // تطبيق خصم 5%
-
-        orderToUpdate.totalPrice = discountedPrice.toFixed(2); // تنسيق السعر ليبقى رقمين بعد الفاصلة
-
-        // الخطوة 4: حفظ التغييرات في قاعدة البيانات
-        await orderToUpdate.save();
-
-        // إرسال رسالة نجاح مع الطلب المحدث
-        return res.json({
-          message: "Review approved and order price updated!",
-          order: orderToUpdate,
-        });
-      }
-    }
-
-    // إذا لم تتم الموافقة أو لم يتم العثور على الطلب، أرسل رسالة عادية
-    res.json({ message: "Review status updated successfully." });
-  } catch (error) {
-    console.error("Error updating review and order:", error);
-    res.status(500).json({ error: "Error during the update process" });
-  }
-});
-
-// ✅ مسار جديد لإضافة مجموعة من الملصقات دفعة واحدة (Bulk Add)
+// إضافة مجموعة من الملصقات دفعة واحدة (Bulk Add)
 app.post("/stickers/bulk", async (req, res) => {
   const { products } = req.body;
 
@@ -845,17 +578,14 @@ app.post("/stickers/bulk", async (req, res) => {
   }
 
   try {
-    // 1. Find the current highest orderIndex in the collection
     const lastSticker = await stickres.findOne().sort({ orderIndex: -1 });
     const startOrderIndex = lastSticker ? lastSticker.orderIndex + 1 : 0;
 
-    // 2. Add the orderIndex to each product in the array
     const productsWithIndex = products.map((product, index) => ({
       ...product,
       orderIndex: startOrderIndex + index,
     }));
 
-    // 3. Perform the bulk insert
     await stickres.insertMany(productsWithIndex);
     res
       .status(201)
@@ -871,20 +601,54 @@ app.post("/stickers/bulk", async (req, res) => {
   }
 });
 
+
+// ------------------------------------------------------------------
+//  مسارات الطلبات (Orders)
+// ------------------------------------------------------------------
+
+// إنشاء طلب جديد
+app.post("/orders", async (req, res) => {
+  try {
+    const order = new Order(req.body);
+
+    await order.save();
+    await sendTelegramNotification(order.toObject());
+
+    res.status(201).json({ message: "Commande créée avec succès", order });
+
+  } catch (error) {
+    console.error('Erreur lors de la création de la commande:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// جلب جميع الطلبات مع المراجعات المرتبطة
+app.get("/orders", async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("review")
+      .sort({ orderDate: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des commandes:", error);
+    res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération des commandes" });
+  }
+});
+
+// حذف طلب
 app.delete("/orders/:orderId", async (req, res) => {
   try {
     const order = await Order.findByIdAndDelete(req.params.orderId);
 
     if (!order) {
-      // If no order was found with that ID
       return res.status(404).json({ msg: "Order not found" });
     }
-
-    // Successfully deleted
     res.json({ msg: "Order removed successfully" });
   } catch (err) {
     console.error(err.message);
-    // Handle cases where the ID is not a valid ObjectId
     if (err.kind === "ObjectId") {
       return res.status(404).json({ msg: "Order not found" });
     }
@@ -892,10 +656,10 @@ app.delete("/orders/:orderId", async (req, res) => {
   }
 });
 
+// تحديث حالة الطلب
 app.put("/orders/:orderId/status", async (req, res) => {
   const { status } = req.body;
 
-  // Basic validation for the status field
   if (!status || !["Pending", "Completed", "Cancelled"].includes(status)) {
     return res.status(400).json({ msg: "Invalid status value" });
   }
@@ -903,15 +667,13 @@ app.put("/orders/:orderId/status", async (req, res) => {
   try {
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.orderId,
-      { status: status }, // The fields to update
-      { new: true } // Return the modified document rather than the original
+      { status: status },
+      { new: true }
     );
 
     if (!updatedOrder) {
       return res.status(404).json({ msg: "Order not found" });
     }
-
-    // Send the updated order back to the client
     res.json(updatedOrder);
   } catch (err) {
     console.error(err.message);
@@ -922,9 +684,92 @@ app.put("/orders/:orderId/status", async (req, res) => {
   }
 });
 
+
+// ------------------------------------------------------------------
+//  مسارات المراجعات (Reviews)
+// ------------------------------------------------------------------
+
+// إضافة تعليق (مع/بدون صورة)
+app.post("/reviews", upload.single("image"), async (req, res) => {
+  try {
+    const { customerName, comment } = req.body;
+
+    if (!customerName || !comment) {
+      return res.status(400).json({ error: "الاسم والتعليق حقول إجبارية." });
+    }
+
+    const reviewData = {
+      customerName,
+      comment,
+      imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
+    };
+
+    const newReview = new Review(reviewData);
+    await newReview.save();
+
+    res
+      .status(201)
+      .json({ message: "شكرًا لك! تم إرسال تعليقك بنجاح.", review: newReview });
+  } catch (error) {
+    console.error("Error submitting review:", error);
+    res.status(500).json({ error: "حدث خطأ في الخادم أثناء إرسال التعليق." });
+  }
+});
+
+// جلب جميع المراجعات (الواجهة الأمامية)
+app.get("/reviews", async (req, res) => {
+  try {
+    const reviews = await Review.find({}).sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    res.status(500).json({ message: "Failed to fetch reviews" });
+  }
+});
+
+// تحديث حالة المراجعة وتطبيق الخصم على الطلب المرتبط
+app.put("/reviews/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved } = req.body;
+
+    const updatedReview = await Review.findByIdAndUpdate(
+      id,
+      { approved },
+      { new: true }
+    );
+
+    if (!updatedReview) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+
+    if (approved) {
+      const orderToUpdate = await Order.findOne({ review: id });
+
+      if (orderToUpdate) {
+        const originalPrice = parseFloat(orderToUpdate.totalPrice);
+        const discountedPrice = originalPrice * 0.95;
+
+        orderToUpdate.totalPrice = discountedPrice.toFixed(2);
+        await orderToUpdate.save();
+
+        return res.json({
+          message: "Review approved and order price updated!",
+          order: orderToUpdate,
+        });
+      }
+    }
+
+    res.json({ message: "Review status updated successfully." });
+  } catch (error) {
+    console.error("Error updating review and order:", error);
+    res.status(500).json({ error: "Error during the update process" });
+  }
+});
+
+// جلب جميع المراجعات (واجهة المشرف)
 app.get("/ReviewAdmin", async (req, res) => {
   try {
-    // جلب جميع المراجعات وترتيبها من الأحدث إلى الأقدم
     const reviews = await Review.find().sort({ createdAt: -1 });
     res.json(reviews);
   } catch (err) {
@@ -933,21 +778,19 @@ app.get("/ReviewAdmin", async (req, res) => {
   }
 });
 
+// حذف مراجعة (واجهة المشرف)
 app.delete("/ReviewAdmin/:id", async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
 
-    // التحقق مما إذا كانت المراجعة موجودة
     if (!review) {
       return res.status(404).json({ msg: "Review not found" });
     }
 
-    await review.deleteOne(); // استخدام deleteOne() لحذف المستند
-
+    await review.deleteOne();
     res.json({ msg: "Review removed successfully" });
   } catch (err) {
     console.error(err.message);
-    // إذا كان الـ ID غير صالح
     if (err.kind === "ObjectId") {
       return res.status(404).json({ msg: "Review not found" });
     }
@@ -955,19 +798,180 @@ app.delete("/ReviewAdmin/:id", async (req, res) => {
   }
 });
 
+// مسار الاختبار الأساسي
 app.get("/", (req, res) => {
   res.send("update 2/28/2025");
 });
 
-// 🚨🚨 ابحث عن هذين السطرين:
-// const PORT = 3002;
-// app.listen(PORT, () => {
-//     console.log(`Server running on http://localhost:${PORT}`);
-// });
+// ------------------------------------------------------------------
+//  Bulk Process & Download Route via Python (New Feature)
+// ------------------------------------------------------------------
+app.get("/api/download-processed-stickers", async (req, res) => {
+  try {
+    // 1. Fetch all stickers
+    // Or filter by category if passed? User said "all".
+    const stickers = await stickres.find({});
 
-// وقم بتغييرهما إلى هذا:
-const SERVER_PORT = process.env.PORT || 3002; // استخدم المنفذ الذي توفره منصة الاستضافة أو 3002 كافتراضي
+    if (!stickers || stickers.length === 0) {
+      return res.status(404).json({ message: "No stickers found in database." });
+    }
 
-app.listen(SERVER_PORT, () => {
-  console.log(`Server running on port ${SERVER_PORT}`);
+    // 2. Setup temporary directory
+    const tempDirName = `temp_process_${Date.now()}`;
+    const tempDir = path.join(__dirname, tempDirName);
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir);
+    }
+
+    const pythonScript = path.join(__dirname, 'crop_border.py');
+    const processedFiles = [];
+
+    // 3. Process each sticker using Python
+    console.log(`Starting bulk processing for ${stickers.length} stickers...`);
+
+    // We process sequentially to avoid spawning too many processes at once
+    for (const sticker of stickers) {
+      if (!sticker.image) continue;
+
+      let inputFilePath = null;
+      let isTempInput = false;
+      let originalFilename = `sticker_${sticker._id}`;
+
+      try {
+        // CASE A: Remote URL (e.g. from Scraper/Redbubble)
+        if (sticker.image.startsWith('http') && !sticker.image.includes('/uploads/')) {
+          try {
+            // Download remote image
+            const response = await axios({
+              url: sticker.image,
+              method: 'GET',
+              responseType: 'arraybuffer',
+              timeout: 10000 // 10s timeout
+            });
+
+            // Determine extension or default to png
+            const ext = path.extname(sticker.image).split('?')[0] || '.png';
+            const tempInputName = `temp_in_${sticker._id}${ext}`;
+            inputFilePath = path.join(tempDir, tempInputName);
+            fs.writeFileSync(inputFilePath, response.data);
+            isTempInput = true;
+            originalFilename = `sticker_${sticker._id}`; // Use ID as name base
+          } catch (err) {
+            console.error(`Failed to download remote sticker ${sticker._id}:`, err.message);
+            continue; // Skip this sticker
+          }
+        }
+        // CASE B: Local File (in /uploads/)
+        else {
+          // Determine local path
+          // Handle both full URL "http://localhost.../uploads/file.png" and relative "/uploads/file.png"
+          let filename = null;
+          const uploadMarker = '/uploads/';
+
+          if (sticker.image.includes(uploadMarker)) {
+            const parts = sticker.image.split(uploadMarker);
+            if (parts.length > 1) {
+              filename = parts[1];
+            }
+          } else {
+            // Maybe it's just the filename stored?
+            filename = sticker.image;
+          }
+
+          if (filename) {
+            // Decode URI component to handle spaces (%20) etc.
+            filename = decodeURIComponent(filename);
+            inputFilePath = path.join(UPLOADS_DIR, filename);
+            originalFilename = path.parse(filename).name;
+          }
+        }
+
+        // If we have a valid input path and it exists
+        if (inputFilePath && fs.existsSync(inputFilePath)) {
+          const outputFilename = `processed-${originalFilename}.png`;
+          const outputPath = path.join(tempDir, outputFilename);
+
+          await new Promise((resolve) => {
+            const proc = spawn(PYTHON_COMMAND, [
+              pythonScript,
+              inputFilePath,
+              outputPath,
+              '50', // threshold
+              '1'   // border_thickness
+            ]);
+
+            // Capture stderr for debugging
+            let stdErrData = '';
+            proc.stderr.on('data', d => stdErrData += d.toString());
+
+            proc.on('close', (code) => {
+              if (code === 0 && fs.existsSync(outputPath)) {
+                processedFiles.push({ path: outputPath, name: outputFilename });
+              } else {
+                console.error(`Failed to process ${originalFilename}, exit code: ${code}. PyErr: ${stdErrData}`);
+              }
+              resolve();
+            });
+
+            proc.on('error', (err) => {
+              console.error(`Spawn error for ${originalFilename}:`, err);
+              resolve();
+            });
+          });
+        } else {
+          console.warn(`Skipping sticker ${sticker._id}: File not found at ${inputFilePath}`);
+        }
+
+      } catch (loopErr) {
+        console.error(`Unexpected error processing sticker ${sticker._id}:`, loopErr);
+      } finally {
+        // Cleanup temp input if we created one
+        if (isTempInput && inputFilePath && fs.existsSync(inputFilePath)) {
+          try { fs.unlinkSync(inputFilePath); } catch (e) { }
+        }
+      }
+    }
+
+    if (processedFiles.length === 0) {
+      // Cleanup empty temp dir
+      try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) { }
+      // Return 200 with JSON message instead of 400 so client can handle it gracefully? 
+      // Or keep 400 but ensure client reads it. A 404 might be better if no files found.
+      return res.status(404).json({ message: "No stickers were successfully processed. Check console for details." });
+    }
+
+    // 4. Create ZIP and send
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    // Set headers
+    res.attachment('processed_stickers.zip');
+
+    // Handle cleanup when response is finished or error
+    res.on('finish', () => {
+      try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) { }
+    });
+
+    res.on('error', (err) => {
+      try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) { }
+    });
+
+    archive.pipe(res);
+
+    processedFiles.forEach((file) => {
+      archive.file(file.path, { name: file.name });
+    });
+
+    await archive.finalize();
+
+  } catch (error) {
+    console.error("Error in bulk processing:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Server error during bulk processing.", error: error.message });
+    }
+  }
+});
+
+const PORT = 3002;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

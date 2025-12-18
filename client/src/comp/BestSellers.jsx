@@ -7,11 +7,11 @@ import vinland from "../public/pack/vinland.png";
 import { Link, useNavigate } from "react-router-dom";
 
 const products = [
-  { id: 1, title: 'Naruto', imageUrl:naruto,category:"Naruto"},
-  { id: 2, title: 'One piece', imageUrl: one ,category:"One Piece"},
-  { id: 3, title: 'Valorant', imageUrl:valo,category:"Valorant" },
-  { id: 4, title: 'Counter Strike ', imageUrl:cs,category:"Counter Strike" },
-  { id: 5, title: 'Jujutsu Kaisen', imageUrl: vinland,category:"Jujutsu Kaisen" },
+  { id: 1, title: 'Naruto', imageUrl: naruto, category: "Naruto" },
+  { id: 2, title: 'One piece', imageUrl: one, category: "One Piece" },
+  { id: 3, title: 'Valorant', imageUrl: valo, category: "Valorant" },
+  { id: 4, title: 'Counter Strike ', imageUrl: cs, category: "Counter Strike" },
+  { id: 5, title: 'Jujutsu Kaisen', imageUrl: vinland, category: "Jujutsu Kaisen" },
 
 ];
 
@@ -23,7 +23,7 @@ const BentoShowcase = () => {
     if (index === 3 || index === 4) return 'card-standard';
     return 'card-standard';
   };
-  
+
   return (
     <section className="bento-section">
       <header className="bento-header">
@@ -38,7 +38,7 @@ const BentoShowcase = () => {
             <div className="bento-card-content">
               <div className="content-inner">
                 <h3 className="bento-card-title">{product.title}</h3>
-                <Link  to={`/product?category=${encodeURIComponent(product.category)}`} className="bento-card-button">Explore Stickers</Link>
+                <Link to={`/product?category=${encodeURIComponent(product.category)}`} className="bento-card-button">Explore Stickers</Link>
               </div>
             </div>
           </div>

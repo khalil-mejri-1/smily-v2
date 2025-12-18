@@ -1,4 +1,4 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import Navbar from '../comp/navbar';
 import Marquee from '../comp/Marquee';
 import EnhancedCollage from '../comp/ImageCollage';
@@ -22,17 +22,17 @@ function Home() {
   return (
     <>
       <Navbar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      
+
       <main className={`main-content ${isSidebarOpen ? 'blurred' : ''}`}>
-       
-      <Marquee />   
-      <EnhancedCollage />
+
+        <Marquee />
+        <EnhancedCollage />
 
       </main>
-<BestSellers/>
-<PopularCategories/>
-<Review/>
-<Footer/>
+      {/* <BestSellers/> */}
+      <PopularCategories />
+      <Review />
+      <Footer />
 
     </>
   );

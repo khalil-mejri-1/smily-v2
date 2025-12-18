@@ -145,12 +145,12 @@ const NewProductGrid = () => {
             let url = '';
 
             if (searchQuery) {
-                url = `https://smily-v2.onrender.com/search/products?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}`;
+                url = `http://localhost:3002/search/products?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}`;
             } else if (subcats) {
-                url = `https://smily-v2.onrender.com/items/all?subcats=${encodeURIComponent(subcats)}&page=${page}&limit=${limit}`;
+                url = `http://localhost:3002/items/all?subcats=${encodeURIComponent(subcats)}&page=${page}&limit=${limit}`;
             } else {
                 const currentCategory = category || 'All';
-                url = `https://smily-v2.onrender.com/items/${currentCategory}?page=${page}&limit=${limit}`;
+                url = `http://localhost:3002/items/${currentCategory}?page=${page}&limit=${limit}`;
             }
 
             try {

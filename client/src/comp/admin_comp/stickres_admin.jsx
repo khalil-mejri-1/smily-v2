@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import NavbarAdmin from './navbar_admin';
-import { FiEdit, FiTrash2, FiLoader, FiAlertCircle, FiSearch, FiXCircle } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiLoader, FiAlertCircle, FiSearch, FiXCircle, FiDownload } from "react-icons/fi";
 import { categoryData } from '../../choix/choix';
 
 const StickresAdmin = () => {
@@ -14,7 +14,7 @@ const StickresAdmin = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
-    
+
     // ✅ New states for category-based deletion and count
     const [selectedCategory, setSelectedCategory] = useState('');
     const [categoryCount, setCategoryCount] = useState(0);
@@ -53,7 +53,7 @@ const StickresAdmin = () => {
                 return;
             }
             try {
-                const response = await axios.get(`https://smily-1.onrender.com/stickers/count?category=${selectedCategory}`);
+                const response = await axios.get(`http://localhost:3002/stickers/count?category=${selectedCategory}`);
                 setCategoryCount(response.data.count);
             } catch (err) {
                 console.error("Failed to fetch category count:", err);
@@ -69,18 +69,18 @@ const StickresAdmin = () => {
             setLoading(true);
             setError(null);
             try {
-                const url = `https://smily-1.onrender.com/stickers?page=${page}&limit=20&title=${debouncedQuery}&category=${selectedCategory}`;
+                const url = `http://localhost:3002/stickers?page=${page}&limit=20&title=${debouncedQuery}&category=${selectedCategory}`;
                 const response = await axios.get(url);
 
                 setStickers(prev => {
                     const allStickers = [...prev, ...response.data.items];
                     return allStickers.filter((s, i, self) => i === self.findIndex(t => t._id === s._id));
                 });
-                
+
                 if (response.data.totalItems !== undefined) {
                     setTotalCount(response.data.totalItems);
                 }
-                
+
                 setHasMore(response.data.hasNextPage);
 
             } catch (err) {
@@ -96,7 +96,7 @@ const StickresAdmin = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this sticker?')) return;
         try {
-            await axios.delete(`https://smily-1.onrender.com/stickers/${id}`);
+            await axios.delete(`http://localhost:3002/stickers/${id}`);
             setStickers(stickers.filter(sticker => sticker._id !== id));
             setTotalCount(prevCount => prevCount - 1);
             // ✅ Update category count after deletion
@@ -112,7 +112,7 @@ const StickresAdmin = () => {
             return;
         }
         try {
-            const response = await axios.delete(`https://smily-1.onrender.com/stickers/category/${selectedCategory}`);
+            const response = await axios.delete(`http://localhost:3002/stickers/category/${selectedCategory}`);
             alert(response.data.message);
             // ✅ Reset states after successful deletion
             setStickers([]);
@@ -123,6 +123,33 @@ const StickresAdmin = () => {
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Failed to delete stickers by category.';
             alert(errorMessage);
+        }
+    };
+
+    // ✅ New function to handle bulk processing and download
+    const handleDownloadProcessed = async () => {
+        if (!window.confirm("This will process all stickers (crop background + add border) and download a ZIP. This may take a while. Continue?")) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await axios.get('http://localhost:3002/api/download-processed-stickers', {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'processed_stickers.zip');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Download failed:", err);
+            alert("Failed to process and download stickers. See console for details.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -145,13 +172,13 @@ const StickresAdmin = () => {
             <div className="admin-container">
                 <div className="admin-header">
                     <h1 className="admin-title">Manage Stickers</h1>
-                     <span className="sticker-count-badge">
+                    <span className="sticker-count-badge">
                         {totalCount} stickers in DB
                     </span>
                 </div>
 
                 <div className="admin-search-container">
-                    <input 
+                    <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -159,12 +186,12 @@ const StickresAdmin = () => {
                         className="admin-search-input"
                     />
                 </div>
-                
+
                 {/* ✅ New UI for category deletion */}
                 <div className="admin-category-actions">
                     <div className="category-select-group">
                         <label htmlFor="category-select">Select Category to Delete:</label>
-                        <select 
+                        <select
                             id="category-select"
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -175,35 +202,58 @@ const StickresAdmin = () => {
                             ))}
                         </select>
                         {selectedCategory && (
-                             <span className="category-count">
+                            <span className="category-count">
                                 {categoryCount} stickers
-                             </span>
+                            </span>
                         )}
                     </div>
-                    <button 
-                        className="btn-delete-all"
-                        onClick={handleDeleteCategory}
-                        disabled={!selectedCategory || categoryCount === 0}
-                    >
-                        <FiTrash2 /> Delete All
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            className="btn-delete-all"
+                            onClick={handleDeleteCategory}
+                            disabled={!selectedCategory || categoryCount === 0}
+                        >
+                            <FiTrash2 /> Delete All
+                        </button>
+
+                        {/* New Download Button */}
+                        <button
+                            className="btn-download-all"
+                            style={{
+                                backgroundColor: '#2196F3',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '14px'
+                            }}
+                            onClick={handleDownloadProcessed}
+                            disabled={loading}
+                        >
+                            <FiDownload /> Download Processed
+                        </button>
+                    </div>
                 </div>
-                
+
                 {error && <p className="error-message">{error}</p>}
-                
+
                 {stickers.length === 0 && !loading && !searchQuery && !selectedCategory && (
                     <div className="loading-more-container">
                         <p>Type in the search bar or select a category to view stickers.</p>
                     </div>
                 )}
-                
+
                 <div className="stickers-grid">
                     {stickers.map((sticker, index) => {
                         const isLastElement = stickers.length === index + 1;
                         return (
-                            <div 
-                                className="sticker-card-admin" 
-                                ref={isLastElement ? lastStickerElementRef : null} 
+                            <div
+                                className="sticker-card-admin"
+                                ref={isLastElement ? lastStickerElementRef : null}
                                 key={sticker._id}
                             >
                                 <img src={sticker.image} alt={sticker.title} className="sticker-image-admin" />
@@ -219,12 +269,12 @@ const StickresAdmin = () => {
                         );
                     })}
                 </div>
-                
+
                 {loading && <div className="loading-more-container"><FiLoader className="spinner-icon" /><p>Loading...</p></div>}
-                
+
                 {!loading && stickers.length === 0 && (searchQuery || selectedCategory) && (
                     <div className="loading-more-container">
-                         <p>No results found.</p>
+                        <p>No results found.</p>
                     </div>
                 )}
             </div>
