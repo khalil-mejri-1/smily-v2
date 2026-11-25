@@ -54,14 +54,11 @@ const App = () => {
 
           <Route path="/ProductDetail" element={<ProductDetail />} />
           <Route path="/checkout" element={<CartPage />} />
-const ADMIN_ORDERS_PATH = import.meta.env.VITE_ADMIN_ORDERS_PATH || "/admin-orders";
-const ADMIN_PREFIX_PATH = import.meta.env.VITE_ADMIN_PREFIX_PATH || "/admin";
-
           <Route path={ADMIN_ORDERS_PATH} element={<Order />} />
-          <Route path={`${ADMIN_PREFIX_PATH}/Generate Stickers`} element={<StickresAdmin />} />
-          <Route path={`${ADMIN_PREFIX_PATH}/add Stickers`} element={<Add />} />
-          <Route path={`${ADMIN_PREFIX_PATH}/Review`} element={<ReviewAdmin />} />
-          <Route path={`${ADMIN_PREFIX_PATH}/Manager Stickres`} element={<ModifierStickres />} />
+          <Route path={`${ADMIN_BASE_PATH}/Generate Stickers`} element={<StickresAdmin />} />
+          <Route path={`${ADMIN_BASE_PATH}/add Stickers`} element={<Add />} />
+          <Route path={`${ADMIN_BASE_PATH}/Review`} element={<ReviewAdmin />} />
+          <Route path={`${ADMIN_BASE_PATH}/Manager Stickres`} element={<ModifierStickres />} />
 
           <Route path="/*" element={<Home />} />
         </Routes>
