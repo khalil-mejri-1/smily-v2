@@ -1,3 +1,5 @@
+require("dotenv").config();
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
@@ -23,9 +25,8 @@ app.use(cors({
   credentials: true
 }));
 
-// 🚨 انتبه: استبدل القيم التالية بقيمك الحقيقية
-const BOT_TOKEN = '***REDACTED***';
-const CHAT_ID = '***REDACTED***';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 /**
  * ترسل إشعار طلب جديد إلى التلغرام.
@@ -58,6 +59,10 @@ async function sendTelegramNotification(orderData) {
         🚨 يرجى مراجعة لوحة الإدارة فوراً.
     `;
 
+  if (!BOT_TOKEN || !CHAT_ID) {
+    console.warn('⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured.');
+    return;
+  }
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
   try {
@@ -102,8 +107,10 @@ app.use("/processed", express.static(PROCESSED_DIR));
 // اتصال قاعدة البيانات
 const connectDB = async () => {
   try {
-    const uri =
-      "***REDACTED***";
+    const uri = process.env.MONGO_URI;
+    if (!uri) {
+      throw new Error("MONGO_URI is not configured in environment variables");
+    }
     await mongoose.connect(uri);
     console.log("MongoDB connected successfully");
   } catch (error) {

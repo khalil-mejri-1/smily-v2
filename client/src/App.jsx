@@ -13,6 +13,10 @@ import Add from "./comp/admin_comp/add";
 import ClienLinks from "./comp/admin_comp/clien_links";
 import ReviewAdmin from "./comp/admin_comp/Review";
 import ModifierStickres from "./comp/admin_comp/modifier_stickres";
+import CustomStickers from "./pages/CustomStickers"; // Import the new page
+
+const ADMIN_ORDERS_PATH = import.meta.env.VITE_ADMIN_ORDERS_PATH || "/admin-orders";
+const ADMIN_BASE_PATH = import.meta.env.VITE_ADMIN_BASE_PATH || "/admin";
 
 const App = () => {
   return (
@@ -21,22 +25,22 @@ const App = () => {
         position="top-center" // مكان ظهور الإشعار
         toastOptions={{
           // يمكنك تخصيص شكل الإشعارات هنا
-       success: {
-      duration: 1500,
-      style: {
-        background: '#28a7468f',
-        color: 'white',
-        border: '1px solid #47d167ff',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-      },
-    },
+          success: {
+            duration: 1500,
+            style: {
+              background: '#28a7468f',
+              color: 'white',
+              border: '1px solid #47d167ff',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            },
+          },
           error: {
-              duration: 1500,
+            duration: 1500,
             style: {
               background: "#e2435375",
-               backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
               color: "white",
             },
           },
@@ -46,14 +50,18 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/product" element={<Product />} />
+          <Route path="/custom-stickers" element={<CustomStickers />} />
 
           <Route path="/ProductDetail" element={<ProductDetail />} />
           <Route path="/checkout" element={<CartPage />} />
-          <Route path="***REDACTED***" element={<Order/>} />
-          <Route path="***REDACTED***/Generate Stickers" element={<StickresAdmin />} />
-          <Route path="***REDACTED***/add Stickers"  element={<Add />} />
-          <Route path="***REDACTED***/Review"  element={<ReviewAdmin />} />
-          <Route path="***REDACTED***/Manager Stickres"  element={<ModifierStickres />} />
+const ADMIN_ORDERS_PATH = import.meta.env.VITE_ADMIN_ORDERS_PATH || "/admin-orders";
+const ADMIN_PREFIX_PATH = import.meta.env.VITE_ADMIN_PREFIX_PATH || "/admin";
+
+          <Route path={ADMIN_ORDERS_PATH} element={<Order />} />
+          <Route path={`${ADMIN_PREFIX_PATH}/Generate Stickers`} element={<StickresAdmin />} />
+          <Route path={`${ADMIN_PREFIX_PATH}/add Stickers`} element={<Add />} />
+          <Route path={`${ADMIN_PREFIX_PATH}/Review`} element={<ReviewAdmin />} />
+          <Route path={`${ADMIN_PREFIX_PATH}/Manager Stickres`} element={<ModifierStickres />} />
 
           <Route path="/*" element={<Home />} />
         </Routes>

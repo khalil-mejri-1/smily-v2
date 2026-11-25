@@ -1,0 +1,224 @@
+/* ============================================= */
+/* --- 🍱 Featured Collections (Bento Grid) --- */
+/* ============================================= */
+
+.featured-collections-section {
+    padding: 2rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(2, 300px);
+    /* Fixed height rows */
+    gap: 1.5rem;
+}
+
+/* --- Video Card Styling --- */
+.video-card {
+    padding: 0;
+    background: #1c162e;
+    /* Match theme background or black */
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.video-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.fill-parent-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 20px;
+}
+
+/* --- Card Styles --- */
+.bento-card {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: block;
+    /* For Link */
+    text-decoration: none;
+}
+
+.bento-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+}
+
+.bento-card-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s ease;
+}
+
+.bento-card:hover .bento-card-bg {
+    transform: scale(1.1);
+}
+
+.bento-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom,
+            rgba(0, 0, 0, 0.1) 0%,
+            rgba(0, 0, 0, 0.3) 50%,
+            rgba(0, 0, 0, 0.8) 100%);
+    z-index: 1;
+}
+
+.bento-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 1.5rem;
+    z-index: 2;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.bento-badge {
+    display: inline-block;
+    background-color: #f7d900;
+    color: #1c162e;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bento-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.bento-desc {
+    font-size: 0.95rem;
+    color: #e0e0e0;
+    margin: 0;
+    opacity: 0.9;
+    font-weight: 400;
+    max-width: 90%;
+}
+
+.btn-arrow {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    z-index: 3;
+}
+
+.bento-card:hover .btn-arrow {
+    background: white;
+    color: #1c162e;
+    transform: translateX(5px);
+}
+
+/* --- Layout Calculations --- */
+
+/* Item 1: Large Left (Vertical) - Anime/Hero */
+.item-large {
+    grid-column: span 5;
+    grid-row: span 2;
+}
+
+/* Item 2: Top Right (Wide) - Custom/Work */
+.item-wide {
+    grid-column: span 7;
+    grid-row: span 1;
+}
+
+/* Item 3: Bottom Right 1 (Square) - Fun/Memes */
+.item-square-1 {
+    grid-column: span 3;
+    grid-row: span 1;
+}
+
+/* Item 4: Bottom Right 2 (Wideish) - Tunisian/Special */
+.item-wide-sm {
+    grid-column: span 4;
+    grid-row: span 1;
+}
+
+/* --- Responsive 📱 --- */
+@media (max-width: 968px) {
+    .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+    }
+
+    .item-large {
+        grid-column: span 2;
+        height: 350px;
+    }
+
+    .item-wide,
+    .item-wide-sm {
+        grid-column: span 2;
+        height: 250px;
+    }
+
+    .item-square-1 {
+        grid-column: span 1;
+        height: 250px;
+    }
+}
+
+@media (max-width: 576px) {
+    .featured-collections-section {
+        padding: 1rem;
+    }
+
+    .bento-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .bento-card {
+        height: 250px;
+        width: 100%;
+    }
+
+    .item-large {
+        height: 350px;
+        /* Taller for hero on mobile */
+    }
+}

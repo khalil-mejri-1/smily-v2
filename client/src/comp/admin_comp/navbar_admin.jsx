@@ -2,6 +2,9 @@ import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { FiGrid, FiPackage, FiClipboard } from "react-icons/fi"; // Icons for flair
 
+const ADMIN_ORDERS_PATH = import.meta.env.VITE_ADMIN_ORDERS_PATH || "/admin-orders";
+const ADMIN_PREFIX_PATH = import.meta.env.VITE_ADMIN_PREFIX_PATH || "/admin";
+
 const NavbarAdmin = () => {
     return (
         <nav className="navbar-admin">
@@ -12,7 +15,7 @@ const NavbarAdmin = () => {
             <ul className="navbar-links">
                 <li>
                     <NavLink 
-                        to="***REDACTED***/Generate Stickers" 
+                        to={`${ADMIN_PREFIX_PATH}/Generate Stickers`} 
                         className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                     >
                         <FiPackage />
@@ -21,7 +24,7 @@ const NavbarAdmin = () => {
                 </li>
                 <li>
                     <NavLink 
-                        to="***REDACTED***" 
+                        to={ADMIN_ORDERS_PATH} 
                         className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                     >
                         <FiClipboard />
@@ -31,7 +34,7 @@ const NavbarAdmin = () => {
 
                   <li>
                     <NavLink 
-                        to="***REDACTED***/add Stickers" 
+                        to={`${ADMIN_PREFIX_PATH}/add Stickers`} 
                         className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                     >
                         <FiClipboard />
@@ -42,7 +45,7 @@ const NavbarAdmin = () => {
 
                  <li>
                     <NavLink 
-                        to="***REDACTED***/Review" 
+                        to={`${ADMIN_PREFIX_PATH}/Review`} 
                         className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                     >
                         <FiClipboard />
@@ -51,7 +54,7 @@ const NavbarAdmin = () => {
                 </li>
                   <li>
                     <NavLink 
-                        to="***REDACTED***/Manager Stickres" 
+                        to={`${ADMIN_PREFIX_PATH}/Manager Stickres`} 
                         className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                     >
                         <FiClipboard />

@@ -1,0 +1,243 @@
+/* ... (Existing styles for hero/page remain, I will only overwrite the Gallery Grid part with Carousel styles) */
+.custom-stickers-page {
+    background-color: #121212;
+    min-height: 100vh;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    background-image:
+        radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.08) 0%, transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 25%);
+    overflow-x: hidden;
+}
+
+/* --- Hero Section --- */
+.cs-hero {
+    text-align: center;
+    padding: 5rem 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.cs-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(to right, #ffffff, #a5b4fc, #c084fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.cs-subtitle {
+    font-size: 1.25rem;
+    color: #9ca3af;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cs-subtitle span {
+    color: #818cf8;
+    font-weight: 600;
+    text-shadow: 0 0 20px rgba(129, 140, 248, 0.3);
+}
+
+/* --- Infinite Carousel Styling --- */
+.cs-gallery-section {
+    padding: 0 0 6rem 0;
+    /* Full width so remove side padding if desired, or keep centered. Let's do full width carousel. */
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+    /* Hide scrollbar */
+}
+
+.cs-section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 3.5rem;
+    color: #f3f4f6;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+.carousel-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: 1rem 0;
+    /* Space for shadows */
+    /* Mask for subtle fade at edges */
+    /* mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); */
+    /* -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); */
+}
+
+.carousel-track {
+    display: flex;
+    gap: 2rem;
+    /* Gap between cards */
+    width: max-content;
+    animation: scroll 25s linear infinite;
+    /* Smooth slow scroll */
+}
+
+.carousel-track:hover {
+    animation-play-state: paused;
+    /* Pause on hover for interaction */
+}
+
+@keyframes scroll {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+
+    /* Move half way (1 set of items) then loop */
+}
+
+/* Card Styling for Carousel */
+.cs-card.carousel-ite {
+    width: 300px;
+    height: 400px;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+    border: 0px solid rgba(255, 255, 255, 0.1);
+}
+
+
+.cs-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.8s ease;
+    display: block;
+    /* Ensure block display */
+    min-height: 100%;
+    /* Ensure it fills height */
+}
+
+.cs-card:hover img {
+    transform: scale(1.1);
+}
+
+.cs-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    opacity: 1;
+    /* Always visible for user to see content if image fails */
+    transform: translateY(0);
+    transition: all 0.4s ease;
+}
+
+.cs-card:hover .cs-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.4));
+    /* Darker on hover */
+}
+
+.cs-card-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.cs-card-desc {
+    font-size: 0.9rem;
+    color: #e5e7eb;
+}
+
+/* --- Contact Section --- */
+.cs-contact-section {
+    border-top: 1px solid #374151;
+    padding: 6rem 1.5rem;
+    background: linear-gradient(to bottom, #121212, #000);
+}
+
+.cs-contact-container {
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+    background: rgba(31, 41, 55, 0.5);
+    padding: 3rem;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+}
+
+.cs-contact-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1rem;
+}
+
+.cs-contact-text {
+    color: #9ca3af;
+    font-size: 1.1rem;
+    margin-bottom: 3rem;
+}
+
+.cs-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.cs-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cs-btn:hover {
+    transform: scale(1.05);
+}
+
+.cs-btn.whatsapp {
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+}
+
+.cs-btn.facebook {
+    background: linear-gradient(135deg, #1877F2 0%, #0C4DC4 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(24, 119, 242, 0.3);
+}
+
+@media (max-width: 768px) {
+    .cs-title {
+        font-size: 2.5rem;
+    }
+
+    .cs-card.carousel-item {
+        width: 250px;
+        height: 350px;
+    }
+}

@@ -3,9 +3,11 @@ import { useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaShoppingCart, FaCheckCircle } from 'react-icons/fa';
 import SkeletonCard from '../../comp/SkeletonCard.jsx';
+import { categoryData } from '../../choix/choix';
 
 // --- The ProductCard component remains unchanged ---
 const ProductCard = ({ product, isLast, lastStickerElementRef }) => {
+
     const [cartItemIds, setCartItemIds] = useState(new Set());
     const [justAddedId, setJustAddedId] = useState(null);
     const PARTICLE_COUNT = 8;
@@ -104,7 +106,7 @@ const ProductCard = ({ product, isLast, lastStickerElementRef }) => {
 // --- The main component with the new changes ---
 const NewProductGrid = () => {
     const [searchParams] = useSearchParams();
-    
+
     const category = searchParams.get('category');
     const subcats = searchParams.get('subcats');
     const mainCategory = searchParams.get('mainCategory');
@@ -120,7 +122,7 @@ const NewProductGrid = () => {
     const observer = useRef();
     const lastStickerElementRef = useCallback(node => {
         // Only proceed if loading is not in progress and there are more items to load
-        if (loading || !hasMore) return; 
+        if (loading || !hasMore) return;
         if (observer.current) observer.current.disconnect();
         observer.current = new IntersectionObserver(entries => {
             // Check if the last element is intersecting
@@ -144,10 +146,19 @@ const NewProductGrid = () => {
             const limit = 10;
             let url = '';
 
+            // Logic to auto-expand main category to subcats if needed
+            let effectiveSubcats = subcats;
+            if (!searchQuery && !subcats && category && category !== 'All') {
+                const matchedCat = categoryData.find(c => c.name === category);
+                if (matchedCat && matchedCat.subCategories && matchedCat.subCategories.length > 0) {
+                    effectiveSubcats = matchedCat.subCategories.join(',');
+                }
+            }
+
             if (searchQuery) {
                 url = `http://localhost:3002/search/products?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}`;
-            } else if (subcats) {
-                url = `http://localhost:3002/items/all?subcats=${encodeURIComponent(subcats)}&page=${page}&limit=${limit}`;
+            } else if (effectiveSubcats) {
+                url = `http://localhost:3002/items/all?subcats=${encodeURIComponent(effectiveSubcats)}&page=${page}&limit=${limit}`;
             } else {
                 const currentCategory = category || 'All';
                 url = `http://localhost:3002/items/${currentCategory}?page=${page}&limit=${limit}`;
@@ -159,7 +170,7 @@ const NewProductGrid = () => {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                
+
                 setTotalStickers(data.total);
                 setStickers(prevStickers => {
                     const newItems = data.items.filter(
@@ -167,7 +178,7 @@ const NewProductGrid = () => {
                     );
                     return [...prevStickers, ...newItems];
                 });
-                
+
                 // Set hasMore to false if the number of items received is less than the limit
                 setHasMore(data.items.length === limit);
 
@@ -177,12 +188,12 @@ const NewProductGrid = () => {
                 setLoading(false);
             }
         };
-        
+
         // Fetch items only if hasMore is true, or if it's the first page
         if (hasMore || page === 1) {
             fetchItems();
         }
-        
+
     }, [category, subcats, searchQuery, page, hasMore]);
 
     const getTitle = () => {
@@ -201,7 +212,7 @@ const NewProductGrid = () => {
                 <p>{getTitle()}</p>
                 <p>Results: <span style={{ fontWeight: "700" }}>{totalStickers}</span></p>
             </div>
-            
+
             {error && <p style={{ color: 'red' }}>Error: {error}</p>}
 
             <div className="showcase-grid">

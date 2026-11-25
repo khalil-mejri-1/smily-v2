@@ -1,0 +1,265 @@
+.pop-categories-section {
+    padding: 4rem 2rem;
+    max-width: 1400px;
+    /* Wider for better grid */
+    margin: 0 auto;
+}
+
+.pop-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.pop-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #fff, #9ca3af);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+}
+
+.pop-subtitle {
+    color: #9ca3af;
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
+}
+
+/* --- Search Bar Styling --- */
+.pop-search-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.pop-search-bar {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+}
+
+.pop-search-bar input {
+    width: 100%;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 50px;
+    padding: 1rem 1rem 1rem 3.5rem;
+    /* Space for icon */
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pop-search-bar input:focus {
+    outline: none;
+    border-color: #bb86fc;
+    box-shadow: 0 0 0 4px rgba(187, 134, 252, 0.2);
+    background: #2a3441;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 1.2rem;
+    pointer-events: none;
+}
+
+/* --- Grid Styling --- */
+.pop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+/* --- Card Styling --- */
+.pop-card {
+    background: #111827;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    text-decoration: none;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    height: 320px;
+    /* Fixed height for consistency */
+    border: 1px solid #374151;
+}
+
+.pop-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    border-color: #6b7280;
+    z-index: 10;
+}
+
+.pop-card-image {
+    position: relative;
+    flex-grow: 1;
+    /* Search takes up most space */
+    overflow: hidden;
+    background: #000;
+}
+
+.pop-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+    opacity: 0.8;
+}
+
+.pop-card:hover .pop-card-image img {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.pop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(17, 24, 39, 1) 10%, transparent 80%);
+}
+
+.pop-icon-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    padding: 8px;
+    border-radius: 12px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.pop-card:hover .pop-icon-badge {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pop-card-content {
+    padding: 1.5rem;
+    position: relative;
+    z-index: 2;
+    background: #111827;
+    /* Solid background for content part matches card */
+    /* OR make it absolute bottom overlay? Let's stick to flex column for separate text area */
+    border-top: 1px solid #374151;
+}
+
+.pop-card-content h3 {
+    margin: 0 0 0.5rem 0;
+    color: #f3f4f6;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.pop-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.pop-arrow {
+    background: #374151;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    color: #fff;
+}
+
+.pop-card:hover .pop-arrow {
+    background: #3b82f6;
+    /* Brand Blue */
+    transform: translateX(5px);
+}
+
+/* --- Actions --- */
+.pop-actions {
+    text-align: center;
+    margin-top: 3rem;
+}
+
+.pop-show-more-btn {
+    background: transparent;
+    border: 1px solid #4b5563;
+    color: #fff;
+    padding: 1rem 3rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.pop-show-more-btn:hover {
+    background: #fff;
+    color: #111827;
+    transform: translateY(-2px);
+}
+
+.no-results-cat {
+    text-align: center;
+    padding: 3rem;
+    color: #6b7280;
+    font-size: 1.2rem;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .pop-title {
+        font-size: 2rem;
+    }
+
+    .pop-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns on mobile */
+        gap: 1rem;
+    }
+
+    .pop-card {
+        height: 260px;
+        /* Smaller cards on mobile */
+    }
+
+    .pop-card-content {
+        padding: 1rem;
+    }
+
+    .pop-card-content h3 {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pop-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* Still 2 columns for density, much better than 1 */
+        gap: 0.8rem;
+    }
+}

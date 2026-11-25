@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Navbar from '../comp/navbar';
 import Marquee from '../comp/Marquee';
-import EnhancedCollage from '../comp/ImageCollage';
+import FeaturedCollections from '../comp/FeaturedCollections';
 import BestSellers from '../comp/BestSellers';
 import PopularCategories from '../comp/PopularCategories';
 
@@ -26,12 +26,13 @@ function Home() {
       <main className={`main-content ${isSidebarOpen ? 'blurred' : ''}`}>
 
         <Marquee />
-        <EnhancedCollage />
+        <FeaturedCollections />
 
       </main>
+      <Review />
+
       {/* <BestSellers/> */}
       <PopularCategories />
-      <Review />
       <Footer />
 
     </>
